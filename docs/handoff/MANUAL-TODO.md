@@ -33,6 +33,17 @@ Live (www.pompandcircumstancepr.com) loads
 and keeps doing so until these steps are done. Nothing in Webflow has been
 changed by the migration. Steps 4 onward need the user's go-ahead.
 
+**Cutover rule (user, 2026-10-09):** the cutover happens in two phases.
+1. **Parity first.** The new bundle must render the live site 1:1, with no
+   visual, content or behaviour change. Before step 4, run a visual diff
+   with the old assets swapped for `dist/` (block the hamounbv/pomp and
+   Swiper/Lenis CDN requests and serve `dist/` in their place). Cover every
+   template at 375, 800 and 1440 px and accept zero unexplained pixel
+   difference.
+2. **Improvements second.** Performance and accessibility changes ship in
+   later releases, one at a time. Each must leave the visual design and
+   content unchanged, and each is re-checked with the same diff.
+
 - [ ] 1. GitHub Pages source = GitHub Actions on brandvm/pomp
       (Settings → Pages). The migration session enabled it via the API —
       confirm.
