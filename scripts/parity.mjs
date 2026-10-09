@@ -3,6 +3,7 @@
 // swapped for this repo's dist/, then compares every element's computed style
 // and box. Zero differences = the new bundle is a 1:1 drop-in.
 //   node scripts/parity.mjs [--base https://www.pompandcircumstancepr.com] [--pages /,/contact]
+//   [--ignore '<property regex>']  e.g. --ignore '--swiper-.*' on pages that don't load the new stylesheet yet
 // Read-only: requests are intercepted in the test browser, nothing is published.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -77,7 +78,7 @@ async function render(browser, url, width, mode) /* url reassigned for --target 
 }
 
 // Properties that legitimately vary between two loads of the same page.
-const NOISE = /^(will-change)$/;
+const NOISE = new RegExp(`^(will-change${opt('ignore') ? '|' + opt('ignore') : ''})$`);
 
 const browser = await chromium.launch();
 const report = [];

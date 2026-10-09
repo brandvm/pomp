@@ -36,8 +36,15 @@ mentioned in GOTCHAS or a commit stays unambiguous.
 | J | **Cherry Picked Form Input** › Focused (Keyboard) | Desktop | Outline 2px solid **Colors/Focus/Ring**, offset 2px; Box shadow 0 0 0 2px **Colors/Bg/Blue** (P10) | MCP not connected | ☐ |
 | K | New class **U Sr Only** | Desktop | Position Absolute; W 1px; H 1px; margin −1px all sides; padding 0; Overflow Hidden; white-space nowrap (Typography › More › Breaking); border 0 | MCP not connected | ☐ |
 | L | Cherry Picked form (on every page) › email input | — | Add a **Form Label** directly before the input, text "Email address", class **U Sr Only**, *For* = the input. Input settings: Type **Email**, add attribute `autocomplete=email`. **Keep the Name `field-2`**: the form posts to Mailchimp, and renaming the field could break the signup. | MCP not connected | ☐ |
+| M | Variables › Colors | — | New variable **State/Pressed** (Color) = `#00000029` (black at 16%) (P11) | MCP not connected | ☐ |
+| N | Tag **All Links** › Pressed | Desktop | Opacity 72% (P12) | MCP not connected | ☐ |
+| O | **Button Link** › Pressed | Desktop | Opacity 100%; Filters › Brightness 84% (P13) | MCP not connected | ☐ |
+| P | **Button W** › Pressed | Desktop | Opacity 100%; Box shadow inset 0 0 0 100em **State/Pressed** (P14) | MCP not connected | ☐ |
+| Q | **Form Button** › Pressed | Desktop | Opacity 100%; background **State/Pressed**; text colour Transparent (P15) | MCP not connected | ☐ |
+| R | **G Nav Menu Drawer** › Pressed | Desktop | Box shadow inset 0 0 0 100em **State/Pressed** (P16) | MCP not connected | ☐ |
+| S | **Cherry Picked Modal Closer** › Pressed | Desktop | Box shadow inset 0 0 0 100em **State/Pressed** (P17) | MCP not connected | ☐ |
 
-Rows A–L come from the approved focus-state and form-label proposal (prototype `src/css/proposed.css` P1–P10, `new-classes.css` U Sr Only). Check them with `node scripts/check-focus.mjs` in the prototype. On live, Tab through Home, Contact and a blog post: every control shows the two-tone ring, and a mouse click shows nothing on buttons or links.
+Rows A–S come from the approved focus-state, pressed-state and form-label proposal (pressed: P11–P17, checked with `node scripts/check-pressed.mjs`) (prototype `src/css/proposed.css` P1–P10, `new-classes.css` U Sr Only). Check them with `node scripts/check-focus.mjs` in the prototype. On live, Tab through Home, Contact and a blog post: every control shows the two-tone ring, and a mouse click shows nothing on buttons or links.
 
 ## Cutover from hamounbv/pomp@1.0.0
 
@@ -123,6 +130,11 @@ Rules for each interaction:
   `data_scripts_tool` (`get_site_scripts` / `get_page_scripts`), then
   `remove_site_script` (or `remove_page_script`), then `delete_registered_script`.
   `pnpm parity` shows the page renders the same with or without it.
+- Pages other than Home lost the old head `<style>` at cutover (it now lives in
+  `styles.css` §08, which they don't load yet). `.g-embed-code` is now an
+  empty, transparent 86×7 px box at the top right, at z-index max. It's
+  invisible, but it sits above everything. `.cms-filter` and the badge don't
+  occur. Adding G | Components to those pages fixes it.
 - Pages other than Home have no G | Components Embeds yet; they get their CSS
   only from `G | Embed Code` (the old hamounbv stylesheet). **Don't remove that
   Embed from a page until the G | Components block is on it.** Only Home has

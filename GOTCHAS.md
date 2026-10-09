@@ -27,6 +27,23 @@ collected from client repos into those files.
 
 <!-- Add new entries here, newest first. -->
 
+### 2026-10-09 · Setting RELEASE in loader.html breaks CI
+- Area: release
+- Scope: template-candidate
+- Symptom: every push after the 0.0.1 release failed CI with "loader.html
+  must ship with `var RELEASE = null;`", so staging stopped deploying (the
+  staging bundle stayed on the 0.0.1 build, so live was unaffected).
+- Cause: the 0.0.1 commit wrote `RELEASE = "0.0.1"` into `loader.html`. The
+  template keeps it `null` in the repo, and the test enforces that. The
+  version exists only in the head code pasted into Webflow (README › Release).
+  AGENTS.md's "keep loader.html identical to what is installed" reads as if
+  it should match.
+- Fix: `loader.html` back to `null`. The installed release is recorded in
+  AGENTS.md › Project facts (0.0.1). Worth a line in the template's AGENTS.md:
+  "identical except RELEASE".
+- Status: fixed (this commit)
+- Found by: claude
+
 ### 2026-10-09 · Webflow snapshot rebuilt from published CSS (no MCP): what it can't know
 - Area: mcp
 - Scope: template-candidate
@@ -124,11 +141,12 @@ collected from client repos into those files.
   keyboard focus relies on browser defaults. The Cherry Picked e-mail input has no label, and
   `/the-work`'s filter radios all share `id="radio"`.
 - Cause: pre-existing design.
-- Fix: approved 2026-10-09. The prototype has Focused (Keyboard) states for every
+- Fix: approved 2026-10-09. Pressed states P11–P17 are in the prototype too
+  (Designer rows M–S). Disabled doesn't apply: no control is ever disabled.
+  The duplicate radio ids are fixed in the repo (`src/modules/unique-form-ids.ts`).
+  The prototype has Focused (Keyboard) states for every
   control (two-tone ring, proposed.css P1–P10) and a U Sr Only label on the
-  Cherry Picked email field. Designer steps are MANUAL-TODO rows A–L. Pressed and
-  disabled states, and the duplicate radio ids, are still to do.
-- Status: open — focus states and label in the prototype, Webflow build pending
+  Cherry Picked email field. Designer steps are MANUAL-TODO rows A–L. - Status: open — focus states and label in the prototype, Webflow build pending
 - Found by: claude
 
 ### 2026-10-09 · Finsweet still loaded by script tags in head (template deviation)

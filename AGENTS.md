@@ -14,8 +14,10 @@ Filled in by `pnpm new-project` on 2026-10-09.
 - Staging site: `https://pomp-c.webflow.io`
 - Staging bundles: `https://brandvm.github.io/pomp/`
 - Production domain: `www.pompandcircumstancepr.com`
-- Production release: `0.0.1` tagged (1:1 parity with live); not pasted into
-  Webflow yet — live still runs `hamounbv/pomp@1.0.0` until cutover
+- Production release: `0.0.1`, installed (`RELEASE = "0.0.1"` in the Webflow
+  head code; `loader.html` keeps `null` by design, see GOTCHAS). Home runs
+  fully on it; other pages still also load the old hamounbv CSS embed until
+  G | Components replaces it
 - Migrated from: `hamounbv/pomp` v1.0.0 — history and the cutover plan in
   `docs/handoff/BUILD-NOTES.md` and `docs/handoff/MANUAL-TODO.md`
 

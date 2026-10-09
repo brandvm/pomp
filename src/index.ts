@@ -7,6 +7,7 @@ import { initLenis } from './modules/lenis';
 import { initNavShrink } from './modules/nav-shrink';
 import { initColonBreak } from './modules/colon-break';
 import { initHeroVideoGuard } from './modules/hero-video-guard';
+import { initUniqueFormIds } from './modules/unique-form-ids';
 
 // Each module runs in isolation: one that throws is logged and skipped,
 // and every module after it still initializes.
@@ -32,6 +33,7 @@ function boot() {
   run('nav-shrink', initNavShrink);
   run('colon-break', initColonBreak);
   run('hero-video-guard', initHeroVideoGuard);
+  run('unique-form-ids', initUniqueFormIds);
   // Add project feature initializers here: run('<name>', init<Name>);
 }
 
