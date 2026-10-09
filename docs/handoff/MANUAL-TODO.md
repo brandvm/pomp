@@ -99,3 +99,12 @@ Rules for each interaction:
   `wf:film` / `wf:transitions` before and after.
 - One release per group, with no visual or content change.
 
+
+## Waiting on the Webflow MCP (connector currently on another site)
+
+- Replace every per-page HTML Embed on the site with the G | Components
+  pattern (user, 2026-10-09). This includes removing `G | Embed Code`, which
+  still loads `hamounbv/pomp@1.0.0/css/pomp.min.css` on staging.
+- Image compression: the plan is in `../audit/compress-plan.json`, the WebP
+  files are in `../audit/image-webp/` and the originals are backed up in
+  `../audit/image-originals/`.
