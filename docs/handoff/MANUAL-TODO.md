@@ -105,6 +105,15 @@ Rules for each interaction:
 - Replace every per-page HTML Embed on the site with the G | Components
   pattern (user, 2026-10-09). This includes removing `G | Embed Code`, which
   still loads `hamounbv/pomp@1.0.0/css/pomp.min.css` on staging.
+- Remove `colon_break-1.0.0.js`. It was registered through the Data API,
+  so it doesn't appear in Site settings → Custom code. Find it with
+  `data_scripts_tool` (`get_site_scripts` / `get_page_scripts`), then
+  `remove_site_script` (or `remove_page_script`), then `delete_registered_script`.
+  `pnpm parity` shows the page renders the same with or without it.
+- Pages other than Home have no G | Components Embeds yet; they get their CSS
+  only from `G | Embed Code` (the old hamounbv stylesheet). **Don't remove that
+  Embed from a page until the G | Components block is on it.** Only Home has
+  the Swiper slider, so the other pages lose nothing in the meantime.
 - Image compression: the plan is in `../audit/compress-plan.json`, the WebP
   files are in `../audit/image-webp/` and the originals are backed up in
   `../audit/image-originals/`.
