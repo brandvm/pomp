@@ -46,7 +46,7 @@ const FREEZE = `
 
 const SNAPSHOT = `
   (() => {
-    const els = [...document.querySelectorAll('body *')].filter((e) => !e.closest('script,style,noscript,iframe,svg defs,#wfc-environment,.g-components'));
+    const els = [...document.querySelectorAll('body *')].filter((e) => !e.closest('script,style,noscript,iframe,svg defs,#wfc-environment,.g-components,.g-embed-code,.u-sr-only'));
     return els.map((e) => {
       const cs = getComputedStyle(e); const st = {};
       for (const p of cs) st[p] = cs.getPropertyValue(p);
