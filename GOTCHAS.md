@@ -124,8 +124,11 @@ collected from client repos into those files.
   keyboard focus relies on browser defaults. The Cherry Picked e-mail input has no label, and
   `/the-work`'s filter radios all share `id="radio"`.
 - Cause: pre-existing design.
-- Fix: none yet — propose the states with the style guide review.
-- Status: open
+- Fix: approved 2026-10-09. The prototype has Focused (Keyboard) states for every
+  control (two-tone ring, proposed.css P1–P10) and a U Sr Only label on the
+  Cherry Picked email field. Designer steps are MANUAL-TODO rows A–L. Pressed and
+  disabled states, and the duplicate radio ids, are still to do.
+- Status: open — focus states and label in the prototype, Webflow build pending
 - Found by: claude
 
 ### 2026-10-09 · Finsweet still loaded by script tags in head (template deviation)

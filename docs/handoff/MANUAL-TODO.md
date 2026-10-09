@@ -24,7 +24,20 @@ mentioned in GOTCHAS or a commit stays unambiguous.
 
 | ID | Where (page › element or class) | Breakpoint | Set | Why the API can't | Done |
 | --- | --- | --- | --- | --- | --- |
-| A | | Desktop | | | ☐ |
+| A | Variables › Colors | — | New variable **Focus/Ring** (Color) = alias **Colors/Neutral/White** (P1) | MCP not connected to this site | ☐ |
+| B | Tag **All Links** › Focused (Keyboard) | Desktop | Outline 2px solid **Colors/Focus/Ring**, offset 2px; Box shadow 0 0 0 2px **Colors/Bg/Blue** (P2) | MCP not connected | ☐ |
+| C | **Button Link** › Focused (Keyboard) | Desktop | Outline 2px solid **Colors/Focus/Ring**, offset 2px; Box shadow 0 0 0 2px **Colors/Bg/Blue** (P3) | MCP not connected | ☐ |
+| D | **Button W** › Focused (Keyboard) | Desktop | Outline 2px solid **Colors/Focus/Ring**, offset 2px; Box shadow 0 0 0 2px **Colors/Bg/Blue** (P4) | MCP not connected | ☐ |
+| E | **Form Button** › Focused (Keyboard) | Desktop | Opacity 100%, background Transparent, text colour Transparent, plus Outline 2px solid **Colors/Focus/Ring**, offset 2px; Box shadow 0 0 0 2px **Colors/Bg/Blue** (P5; the overlay is opacity 0 otherwise) | MCP not connected | ☐ |
+| F | **G Nav Menu Drawer** › Focused (Keyboard) | Desktop | Outline 2px solid **Colors/Focus/Ring**, offset 2px; Box shadow 0 0 0 2px **Colors/Bg/Blue** (P6) | MCP not connected | ☐ |
+| G | **Cherry Picked Modal Closer** › Focused (Keyboard) | Desktop | Outline 2px solid **Colors/Focus/Ring**, offset 2px; Box shadow 0 0 0 2px **Colors/Bg/Blue** (P7) | MCP not connected | ☐ |
+| H | **Blog Card** › Focused (Keyboard) | Desktop | Move Y −0.5rem (same as Hover), plus Outline 2px solid **Colors/Focus/Ring**, offset 2px; Box shadow 0 0 0 2px **Colors/Bg/Blue** (P8) | MCP not connected | ☐ |
+| I | **Form Input** › Focused (Keyboard) | Desktop | Outline 2px solid **Colors/Focus/Ring**, offset 2px; Box shadow 0 0 0 2px **Colors/Bg/Blue** (P9) | MCP not connected | ☐ |
+| J | **Cherry Picked Form Input** › Focused (Keyboard) | Desktop | Outline 2px solid **Colors/Focus/Ring**, offset 2px; Box shadow 0 0 0 2px **Colors/Bg/Blue** (P10) | MCP not connected | ☐ |
+| K | New class **U Sr Only** | Desktop | Position Absolute; W 1px; H 1px; margin −1px all sides; padding 0; Overflow Hidden; white-space nowrap (Typography › More › Breaking); border 0 | MCP not connected | ☐ |
+| L | Cherry Picked form (on every page) › email input | — | Add a **Form Label** directly before the input, text "Email address", class **U Sr Only**, *For* = the input. Input settings: Type **Email**, add attribute `autocomplete=email`. **Keep the Name `field-2`**: the form posts to Mailchimp, and renaming the field could break the signup. | MCP not connected | ☐ |
+
+Rows A–L come from the approved focus-state and form-label proposal (prototype `src/css/proposed.css` P1–P10, `new-classes.css` U Sr Only). Check them with `node scripts/check-focus.mjs` in the prototype. On live, Tab through Home, Contact and a blog post: every control shows the two-tone ring, and a mouse click shows nothing on buttons or links.
 
 ## Cutover from hamounbv/pomp@1.0.0
 
