@@ -111,6 +111,50 @@ Every difference was deliberate; all carry over into this repo.
   and `.sw-g-nav`, but repo CSS only styles `.s-g-navigation.is-shrunk`;
   the others are presumably Designer combo classes — check before removing.
 
+## Style guide prototype (2026-10-09)
+
+A new style guide page, following the webflow-build skill's
+`style-guide.md` step 1, exists as a localhost prototype next to this repo:
+`../prototype` (outside git; copied by hand from
+`.claude/skills/webflow-build/prototype-starter`). Run `pnpm install` and
+`pnpm dev` there, then open `http://127.0.0.1:5173/design/style-guide`
+(`prototypeUrl` in `webflow-build.config.json`). It replaces the old
+`/design/style-guide` (typography, grid, utilities, hosted videos) once
+approved; the old page stays live and untouched until then.
+
+- **How the snapshot was made:** not through the Webflow MCP (the connector
+  was on another site; no MCP or API call was made). `pnpm snapshot:css`
+  (`prototype/scripts/snapshot-from-css.mjs`) rebuilt
+  `webflow-snapshot/variables.json` and `styles.json` from the published
+  `pomp-c.webflow.shared.7b0ab69d6.min.css`; `webflow-snapshot/source.json`
+  records the URL and what was skipped. What that cannot recover is listed
+  in the script header and in `GOTCHAS.md`. **Replace it with a real MCP
+  snapshot** (variables with modes and aliases, styles with
+  `include_breakpoints`) before anything is built from it, then
+  `pnpm css && pnpm style-guide && pnpm check:style-guide`.
+- **Contents:** colours (every Color variable, deleted and Archived ones
+  included), utilities, spacing, radius, then `components.html` by hand:
+  type specimens (this site has no Typography Styles / Colors Semantic
+  modes, so the generator's typography and theme sections are empty),
+  utilities, buttons and their states, the Cherry Picked and contact forms
+  and the work filter, nav (+ blog variant and open drawer), footer, work
+  card, service slider, blog card, link underlines, page loader, and page
+  previews (home, services, story, contact, work template); then a class
+  library tile for every other class. `pnpm check:style-guide`: all 396
+  classes applied.
+- **One new class proposed:** **Is Top** combo on Section (clears the fixed
+  nav; same value as the existing S Style Guide combo), in
+  `prototype/src/css/new-classes.css` / `CLASSES.md`.
+- **Prototype-only deviations from the starter** are listed at the end of
+  `prototype/README.md` (generated stand-ins for Webflow's own CSS and the
+  fonts, the repo bundle linked like Embed 2a, generator fixes).
+- **Next — waits for approval and the MCP:** `style-guide.md` step 2
+  (rebuild the page in Webflow class for class, a go-ahead per batch) and
+  step 3 (staging checks) wait until (1) the person has reviewed and
+  approved the prototype at 375, 800 and 1440 px and (2) the Webflow
+  connector is back on this site and the snapshot has been retaken. Don't
+  run "Clean up unused styles" before the rebuilt page holds every class.
+
 ## CMS notes
 
 How to edit what: each collection and its fields, which sections are

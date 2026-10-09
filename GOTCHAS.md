@@ -27,6 +27,107 @@ collected from client repos into those files.
 
 <!-- Add new entries here, newest first. -->
 
+### 2026-10-09 · Webflow snapshot rebuilt from published CSS (no MCP): what it can't know
+- Area: mcp
+- Scope: template-candidate
+- Symptom: the style guide prototype needs `webflow-snapshot/variables.json`
+  and `styles.json`, normally read through the Webflow MCP, but the
+  connector was attached to another site and no MCP/API call was allowed.
+- Cause: —
+- Fix: `prototype/scripts/snapshot-from-css.mjs` rebuilds both from the
+  live `*.webflow.shared.*.css`: collections from `--_<collection>---…`,
+  aliases from `var(--x)` values, Body breakpoint modes from the `body`
+  re-declarations at 991/767/479, `var:` bindings, states, breakpoints.
+  It cannot recover: Designer names of classes, variables, groups and
+  collections (slug → Title Case guesses; the unprefixed collection is
+  called "Base collection"); mode names ("Tablet", "Mobile Landscape",
+  "Mobile" assumed); breakpoint auto-modes vs Body tag-style modes (they
+  publish the same; written as Body `variableModes`); which class in a chain
+  is the base and which the combo; component-variant names (published as
+  `:where(.w-variant-<uuid>)`); classes with no properties; element-level
+  styles (`#w-node-…`, skipped); type of ambiguous variables (`140%` Size or
+  Percentage; font stacks keep the first family); values as minified
+  (`#fff`, `.5em`). Fonts are not part of either snapshot: the site's
+  custom fonts (ABC Maxi Round Variable, Avenir Next; Integral CF for
+  legacy classes) load in the prototype head from `src/css/fonts.css`,
+  generated from the published @font-face rules (Webflow CDN URLs).
+  Replace the snapshot with an MCP one when the connector is free and diff
+  the two.
+- Status: open — stand-in in use (prototype only)
+- Found by: claude
+
+### 2026-10-09 · Prototype generators lose large breakpoints and .w-- states; sg-grid collapses
+- Area: css
+- Scope: template-candidate
+- Symptom: in the prototype starter, (1) `gen-webflow-css.mjs` only emits
+  main/medium/small/tiny, so styles at Webflow's `large`/`xl`/`xxl`
+  (min-width 1280/1440/1920; this site has 38 rules there) are silently
+  dropped, and it turns every state into `:<state>`, so Current
+  (`.w--current`) and the custom radio Checked/Focus
+  (`.w--redirected-checked`/`-focus`) come out as invalid pseudo-classes;
+  (2) `gen-style-guide.mjs` swatch and specimen grids render one column wide,
+  because S Wrapper is a flex column with `align-items: flex-start` and
+  `.sg-grid` hugs its content; (3) `nameOf` crashes on a class slug with
+  `---` (`max-width---480px`); (4) a Spacing variable like
+  `Radius/Full = 624.938em` becomes a bar wider than the page, and library
+  tiles for full-viewport classes (Section combos) are 100vh tall each.
+- Cause: the starter assumes the starter site's snapshot (four breakpoints,
+  no class states, a Radius collection, small values).
+- Fix: patched in this project's `prototype/scripts/` (not in the skill):
+  min-width blocks and `.w--` states in `gen-webflow-css.mjs`;
+  `.sg-grid { align-self: stretch }`, `.sg-tile { max-height: 18em }`,
+  `.sg-bar { max-width: 100% }`, radii in a `Radius/` group get the Radius
+  section, `filter(Boolean)` in `nameOf`. Worth upstreaming.
+- Status: open — fixed in the prototype copy only
+- Found by: claude
+
+### 2026-10-09 · Starter prototype.css overrides an existing site's tag styles
+- Area: css
+- Scope: template-candidate
+- Symptom: with a snapshot of an existing site, headings lost their
+  weight, links their colour and images their sizing in the prototype.
+- Cause: `prototype.css` (loaded last) carries stand-ins for the starter
+  site's tag styles (`h1…p { margin: 0; font-weight: inherit }`,
+  `a { color: inherit }`, `img {…}`) and a focus ring; this site's real tag
+  styles are in the generated `webflow.css` and lose the tie.
+- Fix: stand-ins removed from the prototype copy; Webflow's own base comes
+  from `src/css/webflow-base.css` (generated from the published CSS).
+- Status: fixed in the prototype copy
+- Found by: claude
+
+### 2026-10-09 · Styles still read deleted and Archived variables
+- Area: css
+- Scope: project
+- Symptom: published CSS declares five deleted variables
+  (`--outlines<deleted|variable-a17455e3>`, `link…9fec7aeb`,
+  `dark-grey…132174cf`, `black…fc8d69fe`, `grey-30…31da4ab7`) and these
+  styles read them: `.btn` background, `.nav-link-invert:hover` colour,
+  `.utility-page-form`, `.pitch-video`, `.youtube-video-wrapper`
+  backgrounds, `.tooltip_hover-trigger.about/.editorial/.commercial`
+  colour. Fourteen styles read the **Archived** collection, including
+  `body` (text colour = Archived/Text Color/Light), `.button`,
+  `.normal-button`, the Cherry Picked modal, `.form-success/.form-error`.
+- Cause: variables deleted or archived in the Designer while still bound.
+- Fix: none yet. Rebind each style to a live Colors variable in the
+  Designer (with approval), then delete the Archived collection. The style
+  guide shows all of them (colour swatches and class tiles) meanwhile.
+- Status: open
+- Found by: claude
+
+### 2026-10-09 · No button has focus, pressed or disabled states
+- Area: designer
+- Scope: project
+- Symptom: Button W (+ Is Ghost, + the nav CTA variant), Normal Button
+  (+ Cherry Picked), Button, Btn and Blog Card have a Hover state only;
+  no Focus (keyboard), Pressed or Disabled (conventions.md §8). Form Input
+  and Cherry Picked Form Input have Placeholder only (no Focus Visible), so
+  keyboard focus relies on browser defaults. The Cherry Picked e-mail input has no label, and
+  `/the-work`'s filter radios all share `id="radio"`.
+- Cause: pre-existing design.
+- Fix: none yet — propose the states with the style guide review.
+- Status: open
+- Found by: claude
+
 ### 2026-10-09 · Finsweet still loaded by script tags in head (template deviation)
 - Area: loader
 - Scope: project
