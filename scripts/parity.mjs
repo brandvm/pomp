@@ -14,6 +14,9 @@ const argv = process.argv.slice(2);
 const opt = (n, d) => { const i = argv.indexOf(`--${n}`); return i >= 0 ? argv[i + 1] : d; };
 const BASE = opt('base', 'https://www.pompandcircumstancepr.com');
 const PAGES = opt('pages', '/,/the-services,/the-work,/the-story,/the-roster,/contact,/shop,/blog,/post/micro-influencers-canada,/work/nobu-toronto').split(',');
+// --target <origin>: compare BASE (old code, as published) with the same path
+// on another origin running the new code as installed (e.g. the staging site).
+const TARGET = opt('target', null);
 const WIDTHS = (opt('widths', '375,800,1440')).split(',').map(Number);
 
 const distJS = fs.readFileSync(path.join(root, 'dist/index.js'));
@@ -42,7 +45,7 @@ const FREEZE = `
 
 const SNAPSHOT = `
   (() => {
-    const els = [...document.querySelectorAll('body *')].filter((e) => !e.closest('script,style,noscript,iframe,svg defs'));
+    const els = [...document.querySelectorAll('body *')].filter((e) => !e.closest('script,style,noscript,iframe,svg defs,#wfc-environment,.g-components'));
     return els.map((e) => {
       const cs = getComputedStyle(e); const st = {};
       for (const p of cs) st[p] = cs.getPropertyValue(p);
@@ -53,13 +56,16 @@ const SNAPSHOT = `
     });
   })()`;
 
-async function render(browser, url, width, mode) {
+async function render(browser, url, width, mode) /* url reassigned for --target */ {
   const ctx = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: 'no-preference' });
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e.message).slice(0, 160)));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text().slice(0, 160)); });
-  if (mode === 'new') await swapToNew(page);
+  if (mode === 'new' && !TARGET) await swapToNew(page);
+  if (mode === 'new' && TARGET) url = url.replace(BASE, TARGET);
+  const requests = [];
+  page.on('request', (r) => requests.push(r.url()));
   await page.goto(url, { waitUntil: 'load', timeout: 90000 });
   await page.waitForTimeout(6000); // page loader interaction + 4 s CSS failsafe
   await page.evaluate(FREEZE);
@@ -67,7 +73,7 @@ async function render(browser, url, width, mode) {
   const snap = await page.evaluate(SNAPSHOT);
   const shot = await page.screenshot();
   await ctx.close();
-  return { snap, errors, shot };
+  return { snap, errors, shot, requests };
 }
 
 // Properties that legitimately vary between two loads of the same page.
@@ -101,8 +107,10 @@ for (const p of PAGES) {
     const tag = `${p.replace(/\W+/g, '_') || 'home'}_${w}`;
     fs.writeFileSync(path.join(outDir, `${tag}_live.png`), a.shot);
     fs.writeFileSync(path.join(outDir, `${tag}_new.png`), b.shot);
+    const oldCode = b.requests.filter((u) => /hamounbv\/pomp|colon_break|swiper@11\/swiper-bundle|lenis@1\.1\.5/.test(u));
+    if (TARGET && oldCode.length) diffs.push(...oldCode.map((u) => `old code still requested: ${u}`));
     total += diffs.length;
-    report.push({ page: p, width: w, elements: a.snap.length, diffs, liveErrors: a.errors, newErrors: b.errors });
+    report.push({ page: p, width: w, elements: a.snap.length, diffs, liveErrors: a.errors, newErrors: b.errors, newRequests: b.requests.filter((u) => /brandvm|jsdelivr|github\.io/.test(u)) });
     console.log(`${diffs.length ? '✗' : '✓'} ${p} @${w}: ${diffs.length} differences (${a.snap.length} elements)${b.errors.length ? ` · new errors: ${b.errors.length}` : ''}`);
   }
 }
