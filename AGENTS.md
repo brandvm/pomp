@@ -1,4 +1,4 @@
-# <CLIENT> — Webflow custom code
+# Pomp & Circumstance PR — Webflow custom code
 
 Agent instructions for this repository. Codex, Cursor and similar tools read
 this file directly; Claude Code reads it through `CLAUDE.md`. It is the single
@@ -6,15 +6,17 @@ source of agent rules — edit this file, never a copy of it.
 
 ## Project facts
 
-Fill these in when the repo is created from the template (`pnpm new-project`).
+Filled in by `pnpm new-project` on 2026-10-09.
 
-- Client / site: `<CLIENT>`
-- GitHub: `<ORG>/<REPO>`, default branch `master`
-- Webflow site ID: `<SITE_ID>`
-- Staging site: `https://<SLUG>.webflow.io`
-- Staging bundles: `https://<ORG>.github.io/<REPO>/`
-- Production domain: `<DOMAIN or "not attached yet">`
-- Production release: `<RELEASE in the head snippet, or "none yet">`
+- Client / site: `Pomp & Circumstance PR`
+- GitHub: `brandvm/wf-pomp`, default branch `master`
+- Webflow site ID: `62a5f6c6cc39b911d78bd5b5`
+- Staging site: `https://pomp-c.webflow.io`
+- Staging bundles: `https://brandvm.github.io/wf-pomp/`
+- Production domain: `www.pompandcircumstancepr.com`
+- Production release: none yet (live site still on `hamounbv/pomp@1.0.0`)
+- Migrated from: `hamounbv/pomp` v1.0.0 — history and the cutover plan in
+  `docs/handoff/BUILD-NOTES.md` and `docs/handoff/MANUAL-TODO.md`
 
 ## Who owns what
 
@@ -84,10 +86,14 @@ Before writing any CSS, decide where it belongs.
   The footer loader appends the bundle dynamically, so a sibling
   `<script defer>` has no ordering guarantee. Finsweet Attributes too: use
   the webflow-build skill's `recipes/finsweet/`, never Finsweet's script
-  tag in Webflow.
-- `src/styles.css` §01 scales the body font-size with the viewport (Osmo
-  Scaling System). Webflow variables are in em so they follow it; don't
-  set a body font-size in the Designer.
+  tag in Webflow. **Project deviation:** the Finsweet CMS Load and Smart
+  Lightbox tags are still in the head snippet (carried from live); see the
+  TODO in `loader.html` and `GOTCHAS.md`.
+- **Project deviation:** `src/styles.css` does not use the template's §01
+  Osmo body scaling. It keeps pomp's own scaling, which sets `font-size` on
+  `:root` (pre-existing, `override-webflow`, needs review — `GOTCHAS.md`).
+  The template's resets and foundation rules are not adopted either, so the
+  migration does not change how the live site renders.
 
 ## Webflow canvas facts
 

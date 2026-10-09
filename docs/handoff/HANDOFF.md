@@ -1,4 +1,4 @@
-# <CLIENT> — design handoff → Webflow build
+# Pomp & Circumstance PR — design handoff → Webflow build
 
 The brief every build session starts from. Written when the design is
 approved (by the designer, or at the end of the prototype phase) and kept

@@ -1,7 +1,17 @@
-/* Global site styles — source of truth for custom CSS.
+/* Global site styles — Pomp & Circumstance PR (brandvm/wf-pomp).
    Built to dist/styles.css (minified) and released via jsDelivr pinned tags.
    Keep Designer classes for layout; this file is for tokens, resets,
    utilities, and JS-paired styles that Webflow classes cannot express.
+
+   MIGRATED FROM hamounbv/pomp@1.0.0 css/pomp.css (what live loads today).
+   The rules below are that file, unchanged, plus the inline <style> that
+   lived in the old head snippet and the Swiper CSS that came from the CDN.
+   The template's own foundation (Osmo body scaling, element resets, .w-*
+   internals, focus rings, reduced-motion set, editor helpers) is NOT
+   adopted — it would change how the live site renders. pomp's original
+   rule order is preserved; sections are numbered to the template's map
+   below, which puts §06 UTILITIES before §05 — see the note at §06.
+   Each section notes which old section ("pomp §NN") it came from.
 
    REPO-CSS POLICY — see AGENTS.md. If the Designer can express a style,
    it belongs in the Designer, not here. Every rule here, or the section
@@ -9,10 +19,14 @@
    with one tag — js-state, designer-cant, third-party, canvas-preview,
    approved-base or override-webflow — then a short why.
    override-webflow needs explicit approval and a GOTCHAS.md entry.
+   Pre-existing override-webflow rules are listed in GOTCHAS.md as
+   "pre-existing, needs approval/review".
 
    CASCADE NOTES — read before adding rules.
    1. This sheet is injected by an HTML Embed in the body (see loader.html),
       so it lands after webflow.css. Ties on specificity go to us.
+      (Live loads pomp.min.css from head code — also after webflow.css, so
+      the tie-breaking against Webflow is unchanged.)
    2. That only works at EQUAL specificity. `h1 {}` beats Webflow's `h1 {}`,
       but `:where(h1) {}` (0-0-0) loses to it (0-0-1). Use :where() only for
       our own base layer that Designer classes should be free to override.
@@ -20,103 +34,351 @@
       unlayered always beats layered regardless of order.
    4. Section order IS the tiebreaker — most of this file sits at 0-1-0
       (one class, or one attribute selector), so when two rules collide
-      the later one wins. Sections run broad to narrow:
+      the later one wins. Sections, in file order:
 
-        01 TOKENS               variables only, no output
-        02 BASE                 our reset and element defaults
-        03 WEBFLOW INTERNALS    Webflow parts the Designer cannot select
-        04 DOCUMENT STATE       runtime classes on <html>, set by JS
-        05 COMPONENTS & MOTION  named things: .link-underline, marquees
-        06 UTILITIES            single-purpose, must beat components
-        07 ACCESSIBILITY        focus rings and reduced-motion trumps
-        08 EDITOR & DEV SUPPORTS canvas-only escape hatches
+        00 THIRD-PARTY          Swiper core + navigation (@import, must be first)
+        01 TOKENS               variables (+ pomp's root scaling, see GOTCHAS)
+        02 BASE                 pomp's reset and element defaults
+        03 WEBFLOW INTERNALS    rich-text pseudos/margins the Designer can't reach
+        04 DOCUMENT STATE       runtime classes on <html>: loader, Lenis
+        06 UTILITIES            attribute utilities (kept in pomp's position)
+        05 COMPONENTS & MOTION  link effects, animations, components, failsafes
+        07 ACCESSIBILITY        reduced-motion trumps
+        08 EDITOR & DEV SUPPORTS dev-support hiding (was inline in head)
 
       Add rules to the section they belong to, not to the end of the
       file — appending is how a utility silently stops winning.
    ============================================================ */
 
 /* ============================================================
-   01. TOKENS
+   00. THIRD-PARTY
    ============================================================ */
 
-/* repo-css: approved-base — variables consumed by the rules below; no output */
+/* repo-css: third-party — Swiper 11 core + Navigation styles, bundled from
+   the swiper package (MIT, (c) Vladimir Kharlampidi) in place of the
+   swiper-bundle.min.css CDN link. Autoplay has no CSS. Only the modules
+   src/modules/service-slider.ts loads are included; the CDN bundle also
+   carried pagination/scrollbar/effects CSS, which nothing initialises.
+   @import must precede every other rule, so this sits first — the same
+   position the CDN link had (head, before pomp.min.css). */
+@import 'swiper/css';
+@import 'swiper/css/navigation';
 
+/* ============================================================
+   01. TOKENS  (pomp §01 Token Hub, §02 Color System)
+   ============================================================ */
+
+/* repo-css: override-webflow — pre-existing, needs approval/review
+   (GOTCHAS.md). Sets font-size on :root (pomp's own fluid scaling, which
+   live depends on) and aliases Webflow variables (--_colors---accent,
+   --_colors---bg--dark, --_colors---text-color--light). The rest of the
+   block is our own tokens. Ported unchanged so live rendering does not
+   move; the template's §01 body scaling is deliberately not used. */
 :root {
-  /* The design's body size in px (no unit): the scaling below and the
-     Figma width passthrough in §06 both read it. */
-  --size-unit: 16;
-
-  /* Colour — inherits by default. Avoid wiring this to a Webflow variable
-     name (`var(--_colors---…)`): Webflow cannot update this bundle when
-     the variable is renamed, so the reference breaks silently. */
-  --color-accent: currentColor;
-
-  /* Motion */
-  --ease-bbs: cubic-bezier(0.64, 0.05, 0, 1);
-  --dur-bbs: 800ms;
-
-  /* Set this to the fixed header height when the navigation is built. */
-  --nav-h: 0rem;
-
+  /* Scaling System */
+  --size-unit: 16; /* Body font-size in design units (no px) */
+  --size-container-ideal: 1680;
+  --size-container-min: 1280px;
+  --size-container-max: 1920px;
+  --size-container: clamp(var(--size-container-min), 100vw, var(--size-container-max));
+  --size-font: calc(var(--size-container) / (var(--size-container-ideal) / var(--size-unit)));
+  font-size: var(--size-font);
+  /* Color aliases (still uses the existing --_colors---* vars) */
+  --color-accent: var(--_colors---accent, #5498dc);
+  --color-bg-dark: var(--_colors---bg--dark, #0b0e14);
+  --color-text-light: var(--_colors---text-color--light, #f2f5ff);
+  /* Existing tokens (kept as-is) */
+  --base---box-opacity: 50%;
+  --shadow-blur: 3em;
+  --address-icon-fill: var(--color-accent);
+  /* Motion + timing */
+  --ease-bbs: cubic-bezier(0.65, 0.05, 0, 1);
+  --dur-bbs: 735ms;
   /* Underline effect */
-  --underline-top: 95%;
+  --underline-top: 100%;
   --underline-height: 1px;
   --inline-underline-opacity: 0.48;
-
   /* Loops */
   --loop-x-duration: 60s;
   --loop-y-duration: 32s;
-
   /* SVG dash */
   --svg-dash-duration: 8s;
   --svg-dash-offset: 600;
-
-  /* Button icon */
-  --button-icon-shift: 0.25em;
-
   /* Zoom */
   --image-zoom-scale: 1.12;
+  /* Brand ground — used as the hero fallback so a failed video can never
+     leave the page black. Matches the published body background. */
+  --brand-ground: #392ae3;
 }
 
-/* repo-css: approved-base — fluid scaling (Osmo Scaling System), the
-   template default. Every Webflow variable is set in em, so scaling the BODY
-   font-size scales the whole design with the viewport. The root stays at the
-   browser's 16px, so rem values and px-named Designer tokens keep their
-   meaning, and the Designer canvas shows the same scale (it loads this sheet).
+/* Tablet */
+@media screen and (max-width: 991px) {
+  :root {
+    --size-container-ideal: 834;
+    --size-container-min: 768px;
+    --size-container-max: 991px;
+  }
+}
 
-   Desktop: 1em = --size-unit px at the design frame (--size-container-ideal,
-   no unit) and above, up to --size-container-max; it shrinks with the
-   viewport down to --size-container-min and holds from there to 992px.
-   Tablet and mobile (991px and below): a fixed 1rem; the variables'
-   breakpoint modes do the resizing there. Set ideal/min/max to the design
-   before the prototype (webflow-build › checklists › Before the
-   prototype). Don't set
-   a body font-size in the Designer: this rule wins and the Designer value
-   would be a hidden no-op. */
+/* Mobile Landscape */
+@media screen and (max-width: 767px) {
+  :root {
+    --size-container-ideal: 430;
+    --size-container-min: 480px;
+    --size-container-max: 767px;
+  }
+}
+
+/* Mobile Portrait */
+@media screen and (max-width: 479px) {
+  :root {
+    --size-container-ideal: 430;
+    --size-container-min: 320px;
+    --size-container-max: 428px;
+  }
+}
+
+/* repo-css: override-webflow — pre-existing, needs approval/review
+   (GOTCHAS.md). Redefines Webflow colour variables (--_colors---*) as
+   OKLCH / Display-P3. The names (hsa-green, peach, vanilla, jet-black)
+   may come from another project — check them against this site's
+   Webflow variables before keeping. */
 :root {
+  /* Scaling System */
+  --size-unit: 16; /* Body font-size in design units (no px) */
   --size-container-ideal: 1680;
-  --size-container-min: 1440px;
-  --size-container-max: 1680px;
+  --size-container-min: 1280px;
+  --size-container-max: 1920px;
   --size-container: clamp(var(--size-container-min), 100vw, var(--size-container-max));
   --size-font: calc(var(--size-container) / (var(--size-container-ideal) / var(--size-unit)));
-}
-@media screen and (max-width: 991px) {
-  :root { --size-font: 1rem; }
-}
-body {
   font-size: var(--size-font);
+  /* Color aliases (still uses the existing --_colors---* vars) */
+  --color-accent: var(--_colors---accent, #5498dc);
+  --color-bg-dark: var(--_colors---bg--dark, #0b0e14);
+  --color-text-light: var(--_colors---text-color--light, #f2f5ff);
+  /* Existing tokens (kept as-is) */
+  --base---box-opacity: 50%;
+  --shadow-blur: 3em;
+  --address-icon-fill: var(--color-accent);
+  /* Motion + timing */
+  --ease-bbs: cubic-bezier(0.65, 0.05, 0, 1);
+  --dur-bbs: 735ms;
+  /* Underline effect */
+  --underline-top: 100%;
+  --underline-height: 1px;
+  --inline-underline-opacity: 0.48;
+  /* Loops */
+  --loop-x-duration: 60s;
+  --loop-y-duration: 32s;
+  /* SVG dash */
+  --svg-dash-duration: 8s;
+  --svg-dash-offset: 600;
+  /* Zoom */
+  --image-zoom-scale: 1.12;
+  /* Brand ground — used as the hero fallback so a failed video can never
+     leave the page black. Matches the published body background. */
+  --brand-ground: #392ae3;
+}
+
+/* Tablet */
+@media screen and (max-width: 991px) {
+  :root {
+    --size-container-ideal: 834;
+    --size-container-min: 768px;
+    --size-container-max: 991px;
+  }
+}
+
+/* Mobile Landscape */
+@media screen and (max-width: 767px) {
+  :root {
+    --size-container-ideal: 430;
+    --size-container-min: 480px;
+    --size-container-max: 767px;
+  }
+}
+
+/* Mobile Portrait */
+@media screen and (max-width: 479px) {
+  :root {
+    --size-container-ideal: 430;
+    --size-container-min: 320px;
+    --size-container-max: 428px;
+  }
+}
+
+/* ------------------------------------------------
+   02. Color System: OKLCH and Display-P3 Fallback
+------------------------------------------------ */
+@supports (color: oklch(50% 0.2 280)) {
+  :root {
+    --_colors---black: oklch(0% 0 0);
+    --_colors---jet-black: oklch(27.44099% 0.01325 253.0412);
+    --_colors---hsa-green: oklch(41.08666% 0.04898 209.281);
+    --_colors---peach: oklch(68.97933% 0.11222 35.797);
+    --_colors---vanilla: oklch(97.76604% 0.01869 96.8597);
+    --_colors---white: oklch(100% 0 89.8756);
+    --_colors---gradient--green-stop-1: oklch(75.63116% 0.05108 183.3079);
+    --_colors---gradient--green-stop-2: oklch(55.78373% 0.06895 209.7173);
+    --_colors---gradient--green-stop-3: oklch(42.47057% 0.05105 210.5168);
+    --_colors---gradient--highlight-stop-1: oklch(76.03173% 0.10063 55.06835);
+    --_colors---gradient--highlight-stop-2: oklch(84.73567% 0.10453 78.735);
+    --_colors---gradient--green-stop-1-light: oklch(83.46599% 0.05012 173.6354);
+    --_colors---gradient--green-stop-2-light: oklch(67.39397% 0.08011 210.4337);
+    --_colors---gradient--peach-stop-1: oklch(79.05355% 0.09929 63.5832);
+    --_colors---gradient--peach-stop-2: oklch(84.73567% 0.10453 78.735);
+    --_colors---gradient--peach-stop-3: oklch(84.88607% 0.07339 119.7884);
+  }
+}
+
+@supports (color: color(display-p3 1 0 0)) {
+  :root {
+    --_colors---black: color(display-p3 0 0 0);
+    --_colors---jet-black: color(display-p3 0.137255 0.156863 0.180392);
+    --_colors---hsa-green: color(display-p3 0.152941 0.321569 0.34902);
+    --_colors---peach: color(display-p3 0.843137 0.505882 0.415686);
+    --_colors---vanilla: color(display-p3 0.984314 0.972549 0.917647);
+    --_colors---white: color(display-p3 1 1 1);
+    --_colors---gradient--green-stop-1: color(display-p3 0.54902 0.733333 0.701961);
+    --_colors---gradient--green-stop-2: color(display-p3 0.239216 0.498039 0.541176);
+    --_colors---gradient--green-stop-3: color(display-p3 0.160784 0.337255 0.368627);
+    --_colors---gradient--highlight-stop-1: color(display-p3 0.890196 0.627451 0.447059);
+    --_colors---gradient--highlight-stop-2: color(display-p3 0.94902 0.772549 0.486275);
+    --_colors---gradient--green-stop-1-light: color(display-p3 0.658824 0.831373 0.776471);
+    --_colors---gradient--green-stop-2-light: color(display-p3 0.333333 0.643137 0.698039);
+    --_colors---gradient--peach-stop-1: color(display-p3 0.909804 0.678431 0.462745);
+    --_colors---gradient--peach-stop-2: color(display-p3 0.94902 0.772549 0.486275);
+    --_colors---gradient--peach-stop-3: color(display-p3 0.780392 0.835294 0.623529);
+  }
 }
 
 /* ============================================================
-   02. BASE
+   02. BASE  (pomp §03 Reset & Box Model)
    ============================================================ */
 
-/* repo-css: approved-base — element resets below class specificity (0-0-1), so Designer classes always win */
+/* repo-css: approved-base — pre-existing, ported unchanged from live
+   (hamounbv/pomp@1.0.0); not yet reviewed against the template base.
+   Note it hides scrollbars globally and sets body width: 100vw. */
+:root {
+  /* Scaling System */
+  --size-unit: 16; /* Body font-size in design units (no px) */
+  --size-container-ideal: 1680;
+  --size-container-min: 1280px;
+  --size-container-max: 1920px;
+  --size-container: clamp(var(--size-container-min), 100vw, var(--size-container-max));
+  --size-font: calc(var(--size-container) / (var(--size-container-ideal) / var(--size-unit)));
+  font-size: var(--size-font);
+  /* Color aliases (still uses the existing --_colors---* vars) */
+  --color-accent: var(--_colors---accent, #5498dc);
+  --color-bg-dark: var(--_colors---bg--dark, #0b0e14);
+  --color-text-light: var(--_colors---text-color--light, #f2f5ff);
+  /* Existing tokens (kept as-is) */
+  --base---box-opacity: 50%;
+  --shadow-blur: 3em;
+  --address-icon-fill: var(--color-accent);
+  /* Motion + timing */
+  --ease-bbs: cubic-bezier(0.65, 0.05, 0, 1);
+  --dur-bbs: 735ms;
+  /* Underline effect */
+  --underline-top: 100%;
+  --underline-height: 1px;
+  --inline-underline-opacity: 0.48;
+  /* Loops */
+  --loop-x-duration: 60s;
+  --loop-y-duration: 32s;
+  /* SVG dash */
+  --svg-dash-duration: 8s;
+  --svg-dash-offset: 600;
+  /* Zoom */
+  --image-zoom-scale: 1.12;
+  /* Brand ground — used as the hero fallback so a failed video can never
+     leave the page black. Matches the published body background. */
+  --brand-ground: #392ae3;
+}
 
+/* Tablet */
+@media screen and (max-width: 991px) {
+  :root {
+    --size-container-ideal: 834;
+    --size-container-min: 768px;
+    --size-container-max: 991px;
+  }
+}
+
+/* Mobile Landscape */
+@media screen and (max-width: 767px) {
+  :root {
+    --size-container-ideal: 430;
+    --size-container-min: 480px;
+    --size-container-max: 767px;
+  }
+}
+
+/* Mobile Portrait */
+@media screen and (max-width: 479px) {
+  :root {
+    --size-container-ideal: 430;
+    --size-container-min: 320px;
+    --size-container-max: 428px;
+  }
+}
+
+/* ------------------------------------------------
+   02. Color System: OKLCH and Display-P3 Fallback
+------------------------------------------------ */
+@supports (color: oklch(50% 0.2 280)) {
+  :root {
+    --_colors---black: oklch(0% 0 0);
+    --_colors---jet-black: oklch(27.44099% 0.01325 253.0412);
+    --_colors---hsa-green: oklch(41.08666% 0.04898 209.281);
+    --_colors---peach: oklch(68.97933% 0.11222 35.797);
+    --_colors---vanilla: oklch(97.76604% 0.01869 96.8597);
+    --_colors---white: oklch(100% 0 89.8756);
+    --_colors---gradient--green-stop-1: oklch(75.63116% 0.05108 183.3079);
+    --_colors---gradient--green-stop-2: oklch(55.78373% 0.06895 209.7173);
+    --_colors---gradient--green-stop-3: oklch(42.47057% 0.05105 210.5168);
+    --_colors---gradient--highlight-stop-1: oklch(76.03173% 0.10063 55.06835);
+    --_colors---gradient--highlight-stop-2: oklch(84.73567% 0.10453 78.735);
+    --_colors---gradient--green-stop-1-light: oklch(83.46599% 0.05012 173.6354);
+    --_colors---gradient--green-stop-2-light: oklch(67.39397% 0.08011 210.4337);
+    --_colors---gradient--peach-stop-1: oklch(79.05355% 0.09929 63.5832);
+    --_colors---gradient--peach-stop-2: oklch(84.73567% 0.10453 78.735);
+    --_colors---gradient--peach-stop-3: oklch(84.88607% 0.07339 119.7884);
+  }
+}
+
+@supports (color: color(display-p3 1 0 0)) {
+  :root {
+    --_colors---black: color(display-p3 0 0 0);
+    --_colors---jet-black: color(display-p3 0.137255 0.156863 0.180392);
+    --_colors---hsa-green: color(display-p3 0.152941 0.321569 0.34902);
+    --_colors---peach: color(display-p3 0.843137 0.505882 0.415686);
+    --_colors---vanilla: color(display-p3 0.984314 0.972549 0.917647);
+    --_colors---white: color(display-p3 1 1 1);
+    --_colors---gradient--green-stop-1: color(display-p3 0.54902 0.733333 0.701961);
+    --_colors---gradient--green-stop-2: color(display-p3 0.239216 0.498039 0.541176);
+    --_colors---gradient--green-stop-3: color(display-p3 0.160784 0.337255 0.368627);
+    --_colors---gradient--highlight-stop-1: color(display-p3 0.890196 0.627451 0.447059);
+    --_colors---gradient--highlight-stop-2: color(display-p3 0.94902 0.772549 0.486275);
+    --_colors---gradient--green-stop-1-light: color(display-p3 0.658824 0.831373 0.776471);
+    --_colors---gradient--green-stop-2-light: color(display-p3 0.333333 0.643137 0.698039);
+    --_colors---gradient--peach-stop-1: color(display-p3 0.909804 0.678431 0.462745);
+    --_colors---gradient--peach-stop-2: color(display-p3 0.94902 0.772549 0.486275);
+    --_colors---gradient--peach-stop-3: color(display-p3 0.780392 0.835294 0.623529);
+  }
+}
+
+/* ------------------------------------------------
+   03. Reset & Box Model
+------------------------------------------------ */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeSpeed;
+  text-size-adjust: 100%;
   text-decoration-skip-ink: auto;
   text-decoration-thickness: 8%;
   text-underline-offset: -8%;
@@ -125,172 +387,782 @@ body {
 
 html {
   scroll-behavior: initial;
+  scrollbar-width: none; /* Firefox */
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
-/* clip, not hidden — overflow:hidden here breaks position:sticky
-   descendants. Ignored by Safari < 16, which just means no clipping. */
-html,
-body {
-  overflow-x: clip;
 }
 
 body {
-  font-feature-settings: "liga" 1, "calt" 1;
+  width: 100vw;
+  /* IMPORTANT: one declaration only (a second line would override the first) */
+  font-feature-settings:
+    'liga' 1,
+    'calt' 1;
+  -ms-overflow-style: none; /* IE & Edge */
 }
 
-/* Element defaults Webflow's normalize invents. Designer classes are
-   0-1-0 or higher, so these never fight real styling. */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-p,
-figure,
-blockquote {
-  margin: 0;
-}
-
-ul,
-ol {
-  margin: 0;
-  padding: 0;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-img,
-video {
-  display: block;
-  max-width: 100%;
-  height: auto;
+/* Hide scrollbars universally */
+body::-webkit-scrollbar,
+body ::-webkit-scrollbar {
+  display: none;
 }
 
 svg {
   max-width: none;
   height: auto;
+  box-sizing: border-box;
   vertical-align: middle;
 }
 
+a {
+  color: inherit;
+}
+
 /* ============================================================
-   03. WEBFLOW INTERNALS
+   03. WEBFLOW INTERNALS  (pomp §04 Typography Utilities)
    ============================================================ */
 
-/* repo-css: designer-cant — pseudo-elements, generated children and runtime
-   classes of Webflow components that the Designer cannot select.
+/* repo-css: designer-cant — first/last-child margins of CMS-generated
+   rich-text children (:where()), and .w-richtext clearfix pseudo-elements */
+:root {
+  /* Scaling System */
+  --size-unit: 16; /* Body font-size in design units (no px) */
+  --size-container-ideal: 1680;
+  --size-container-min: 1280px;
+  --size-container-max: 1920px;
+  --size-container: clamp(var(--size-container-min), 100vw, var(--size-container-max));
+  --size-font: calc(var(--size-container) / (var(--size-container-ideal) / var(--size-unit)));
+  font-size: var(--size-font);
+  /* Color aliases (still uses the existing --_colors---* vars) */
+  --color-accent: var(--_colors---accent, #5498dc);
+  --color-bg-dark: var(--_colors---bg--dark, #0b0e14);
+  --color-text-light: var(--_colors---text-color--light, #f2f5ff);
+  /* Existing tokens (kept as-is) */
+  --base---box-opacity: 50%;
+  --shadow-blur: 3em;
+  --address-icon-fill: var(--color-accent);
+  /* Motion + timing */
+  --ease-bbs: cubic-bezier(0.65, 0.05, 0, 1);
+  --dur-bbs: 735ms;
+  /* Underline effect */
+  --underline-top: 100%;
+  --underline-height: 1px;
+  --inline-underline-opacity: 0.48;
+  /* Loops */
+  --loop-x-duration: 60s;
+  --loop-y-duration: 32s;
+  /* SVG dash */
+  --svg-dash-duration: 8s;
+  --svg-dash-offset: 600;
+  /* Zoom */
+  --image-zoom-scale: 1.12;
+  /* Brand ground — used as the hero fallback so a failed video can never
+     leave the page black. Matches the published body background. */
+  --brand-ground: #392ae3;
+}
 
-   Rules that restyled selectable Webflow defaults (Container max-width,
-   forms, checkbox/radio, nav, slider, tabs, dropdown toggle, CMS empty
-   state) were removed in v3: loading after webflow.css, they beat the
-   Designer on source order, so a style set in the Designer did nothing.
-   Style those in the Designer. See GOTCHAS.md. */
+/* Tablet */
+@media screen and (max-width: 991px) {
+  :root {
+    --size-container-ideal: 834;
+    --size-container-min: 768px;
+    --size-container-max: 991px;
+  }
+}
 
-/* Clearfix pseudos. Webflow puts ::before/::after on most wrappers;
-   inside a flex or grid parent they become phantom items and eat gap. */
-.w-container::before,
-.w-container::after,
-.w-row::before,
-.w-row::after,
-.w-clearfix::before,
-.w-clearfix::after,
-.w-form::before,
-.w-form::after,
-.w-richtext::before,
+/* Mobile Landscape */
+@media screen and (max-width: 767px) {
+  :root {
+    --size-container-ideal: 430;
+    --size-container-min: 480px;
+    --size-container-max: 767px;
+  }
+}
+
+/* Mobile Portrait */
+@media screen and (max-width: 479px) {
+  :root {
+    --size-container-ideal: 430;
+    --size-container-min: 320px;
+    --size-container-max: 428px;
+  }
+}
+
+/* ------------------------------------------------
+   02. Color System: OKLCH and Display-P3 Fallback
+------------------------------------------------ */
+@supports (color: oklch(50% 0.2 280)) {
+  :root {
+    --_colors---black: oklch(0% 0 0);
+    --_colors---jet-black: oklch(27.44099% 0.01325 253.0412);
+    --_colors---hsa-green: oklch(41.08666% 0.04898 209.281);
+    --_colors---peach: oklch(68.97933% 0.11222 35.797);
+    --_colors---vanilla: oklch(97.76604% 0.01869 96.8597);
+    --_colors---white: oklch(100% 0 89.8756);
+    --_colors---gradient--green-stop-1: oklch(75.63116% 0.05108 183.3079);
+    --_colors---gradient--green-stop-2: oklch(55.78373% 0.06895 209.7173);
+    --_colors---gradient--green-stop-3: oklch(42.47057% 0.05105 210.5168);
+    --_colors---gradient--highlight-stop-1: oklch(76.03173% 0.10063 55.06835);
+    --_colors---gradient--highlight-stop-2: oklch(84.73567% 0.10453 78.735);
+    --_colors---gradient--green-stop-1-light: oklch(83.46599% 0.05012 173.6354);
+    --_colors---gradient--green-stop-2-light: oklch(67.39397% 0.08011 210.4337);
+    --_colors---gradient--peach-stop-1: oklch(79.05355% 0.09929 63.5832);
+    --_colors---gradient--peach-stop-2: oklch(84.73567% 0.10453 78.735);
+    --_colors---gradient--peach-stop-3: oklch(84.88607% 0.07339 119.7884);
+  }
+}
+
+@supports (color: color(display-p3 1 0 0)) {
+  :root {
+    --_colors---black: color(display-p3 0 0 0);
+    --_colors---jet-black: color(display-p3 0.137255 0.156863 0.180392);
+    --_colors---hsa-green: color(display-p3 0.152941 0.321569 0.34902);
+    --_colors---peach: color(display-p3 0.843137 0.505882 0.415686);
+    --_colors---vanilla: color(display-p3 0.984314 0.972549 0.917647);
+    --_colors---white: color(display-p3 1 1 1);
+    --_colors---gradient--green-stop-1: color(display-p3 0.54902 0.733333 0.701961);
+    --_colors---gradient--green-stop-2: color(display-p3 0.239216 0.498039 0.541176);
+    --_colors---gradient--green-stop-3: color(display-p3 0.160784 0.337255 0.368627);
+    --_colors---gradient--highlight-stop-1: color(display-p3 0.890196 0.627451 0.447059);
+    --_colors---gradient--highlight-stop-2: color(display-p3 0.94902 0.772549 0.486275);
+    --_colors---gradient--green-stop-1-light: color(display-p3 0.658824 0.831373 0.776471);
+    --_colors---gradient--green-stop-2-light: color(display-p3 0.333333 0.643137 0.698039);
+    --_colors---gradient--peach-stop-1: color(display-p3 0.909804 0.678431 0.462745);
+    --_colors---gradient--peach-stop-2: color(display-p3 0.94902 0.772549 0.486275);
+    --_colors---gradient--peach-stop-3: color(display-p3 0.780392 0.835294 0.623529);
+  }
+}
+
+/* ------------------------------------------------
+   03. Reset & Box Model
+------------------------------------------------ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeSpeed;
+  text-size-adjust: 100%;
+  text-decoration-skip-ink: auto;
+  text-decoration-thickness: 8%;
+  text-underline-offset: -8%;
+  text-underline-position: from-font;
+}
+
+html {
+  scroll-behavior: initial;
+  scrollbar-width: none; /* Firefox */
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  width: 100vw;
+  /* IMPORTANT: one declaration only (a second line would override the first) */
+  font-feature-settings:
+    'liga' 1,
+    'calt' 1;
+  -ms-overflow-style: none; /* IE & Edge */
+}
+
+/* Hide scrollbars universally */
+body::-webkit-scrollbar,
+body ::-webkit-scrollbar {
+  display: none;
+}
+
+svg {
+  max-width: none;
+  height: auto;
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+
+a {
+  color: inherit;
+}
+
+/* ------------------------------------------------
+   04. Typography Utilities
+------------------------------------------------ */
+/* Same behavior, lower specificity so Webflow overrides stay easy */
+.rte :where(:first-child, div:first-child > :first-child),
+.content-rte :where(:first-child, div:first-child > :first-child),
+.case-study :where(:first-child, div:first-child > :first-child) {
+  margin-top: 0 !important;
+}
+
+.rte :where(:last-child, div:first-child > :last-child),
+.content-rte :where(:last-child, div:first-child > :last-child),
+.case-study :where(:last-child, div:first-child > :last-child) {
+  margin-bottom: 0 !important;
+}
+
 .w-richtext::after,
-.w-checkbox::before,
-.w-checkbox::after,
-.w-radio::before,
-.w-radio::after,
-.w-tab-content::before,
-.w-tab-content::after,
-.w-tab-pane::before,
-.w-tab-pane::after,
-.w-layout-blockcontainer::before,
-.w-layout-blockcontainer::after {
+.w-richtext::before {
   display: none;
-}
-
-/* The <video> inside a Background Video is generated, not selectable. */
-.w-background-video > video {
-  object-fit: cover;
-}
-
-/* Added at runtime to CMS-bound elements whose field is empty. */
-.w-dyn-bind-empty {
-  display: none;
-}
-
-/* Rich text */
-.w-richtext > :first-child,
-.w-richtext div:first-child > :first-child {
-  margin-top: 0;
-}
-
-.w-richtext > :last-child,
-.w-richtext div:first-child > :last-child {
-  margin-bottom: 0;
-}
-
-.w-richtext ul,
-.w-richtext ol {
-  padding-left: 1.25em; /* restore the indent §02 stripped */
-}
-
-.w-richtext figure {
-  margin: 0;
-}
-
-/* Image figures only — the same padding-bottom on a video figure IS the
-   aspect ratio for its absolutely-positioned iframe. */
-.w-richtext figure.w-richtext-figure-type-image > div {
-  padding-bottom: 0 !important;
-}
-
-.w-richtext figure img {
-  width: 100%;
-}
-
-/* Opt-in: put display:contents on an Embed so its children join the
-   parent's flex/grid. Add `data-embed="contents"` in element settings. */
-[data-embed="contents"] {
-  display: contents;
 }
 
 /* ============================================================
-   04. DOCUMENT STATE
+   04. DOCUMENT STATE  (template loader + old head inline <style>)
    ============================================================ */
 
-/* repo-css: js-state — classes the loader and modules toggle on <html> */
-
-/* The head bootstrap in loader.html adds .is-loading before first paint.
-   src/index.ts removes it when the bundle boots; the head timeout provides
-   a fallback if the bundle cannot load. */
+/* repo-css: js-state — the head bootstrap in loader.html adds .is-loading
+   before first paint; src/index.ts removes it when the bundle boots (head
+   timeout is the 3 s fallback). Template rule, kept because it is paired
+   with the loader snippet. */
 html.is-loading,
 html.is-loading body {
   overflow: hidden;
   height: 100%;
 }
 
+/* repo-css: third-party — Lenis state classes, moved verbatim from the
+   inline <style> in the old head snippet (live). */
+html.lenis {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* ============================================================
+   06. UTILITIES  (pomp §05 Utility Attributes)
+   ============================================================ */
+
+/* NOTE: this section sits BEFORE §05 on purpose. pomp had its utilities
+   ahead of its link effects and components, and several selectors here
+   (e.g. [data-theme='dark'] background-color, [data-truncate] line clamp)
+   tie at 0-1-0 with component rules below. Without the markup to prove no
+   element carries both, moving them after §05 could change which wins.
+   Re-order only after auditing the markup. */
+
+/* repo-css: designer-cant — attribute utilities: line clamp, scrollbar
+   hiding, ::selection with color-mix(), gradient text, theme attributes.
+   [data-theme] reads Webflow variables (--_colors---bg--dark,
+   --_colors---text--light) and [data-bottom-padding='0'] overrides
+   Designer padding with !important — both listed in GOTCHAS.md as
+   pre-existing, needs review. */
+:root {
+  /* Scaling System */
+  --size-unit: 16; /* Body font-size in design units (no px) */
+  --size-container-ideal: 1680;
+  --size-container-min: 1280px;
+  --size-container-max: 1920px;
+  --size-container: clamp(var(--size-container-min), 100vw, var(--size-container-max));
+  --size-font: calc(var(--size-container) / (var(--size-container-ideal) / var(--size-unit)));
+  font-size: var(--size-font);
+  /* Color aliases (still uses the existing --_colors---* vars) */
+  --color-accent: var(--_colors---accent, #5498dc);
+  --color-bg-dark: var(--_colors---bg--dark, #0b0e14);
+  --color-text-light: var(--_colors---text-color--light, #f2f5ff);
+  /* Existing tokens (kept as-is) */
+  --base---box-opacity: 50%;
+  --shadow-blur: 3em;
+  --address-icon-fill: var(--color-accent);
+  /* Motion + timing */
+  --ease-bbs: cubic-bezier(0.65, 0.05, 0, 1);
+  --dur-bbs: 735ms;
+  /* Underline effect */
+  --underline-top: 100%;
+  --underline-height: 1px;
+  --inline-underline-opacity: 0.48;
+  /* Loops */
+  --loop-x-duration: 60s;
+  --loop-y-duration: 32s;
+  /* SVG dash */
+  --svg-dash-duration: 8s;
+  --svg-dash-offset: 600;
+  /* Zoom */
+  --image-zoom-scale: 1.12;
+  /* Brand ground — used as the hero fallback so a failed video can never
+     leave the page black. Matches the published body background. */
+  --brand-ground: #392ae3;
+}
+
+/* Tablet */
+@media screen and (max-width: 991px) {
+  :root {
+    --size-container-ideal: 834;
+    --size-container-min: 768px;
+    --size-container-max: 991px;
+  }
+}
+
+/* Mobile Landscape */
+@media screen and (max-width: 767px) {
+  :root {
+    --size-container-ideal: 430;
+    --size-container-min: 480px;
+    --size-container-max: 767px;
+  }
+}
+
+/* Mobile Portrait */
+@media screen and (max-width: 479px) {
+  :root {
+    --size-container-ideal: 430;
+    --size-container-min: 320px;
+    --size-container-max: 428px;
+  }
+}
+
+/* ------------------------------------------------
+   02. Color System: OKLCH and Display-P3 Fallback
+------------------------------------------------ */
+@supports (color: oklch(50% 0.2 280)) {
+  :root {
+    --_colors---black: oklch(0% 0 0);
+    --_colors---jet-black: oklch(27.44099% 0.01325 253.0412);
+    --_colors---hsa-green: oklch(41.08666% 0.04898 209.281);
+    --_colors---peach: oklch(68.97933% 0.11222 35.797);
+    --_colors---vanilla: oklch(97.76604% 0.01869 96.8597);
+    --_colors---white: oklch(100% 0 89.8756);
+    --_colors---gradient--green-stop-1: oklch(75.63116% 0.05108 183.3079);
+    --_colors---gradient--green-stop-2: oklch(55.78373% 0.06895 209.7173);
+    --_colors---gradient--green-stop-3: oklch(42.47057% 0.05105 210.5168);
+    --_colors---gradient--highlight-stop-1: oklch(76.03173% 0.10063 55.06835);
+    --_colors---gradient--highlight-stop-2: oklch(84.73567% 0.10453 78.735);
+    --_colors---gradient--green-stop-1-light: oklch(83.46599% 0.05012 173.6354);
+    --_colors---gradient--green-stop-2-light: oklch(67.39397% 0.08011 210.4337);
+    --_colors---gradient--peach-stop-1: oklch(79.05355% 0.09929 63.5832);
+    --_colors---gradient--peach-stop-2: oklch(84.73567% 0.10453 78.735);
+    --_colors---gradient--peach-stop-3: oklch(84.88607% 0.07339 119.7884);
+  }
+}
+
+@supports (color: color(display-p3 1 0 0)) {
+  :root {
+    --_colors---black: color(display-p3 0 0 0);
+    --_colors---jet-black: color(display-p3 0.137255 0.156863 0.180392);
+    --_colors---hsa-green: color(display-p3 0.152941 0.321569 0.34902);
+    --_colors---peach: color(display-p3 0.843137 0.505882 0.415686);
+    --_colors---vanilla: color(display-p3 0.984314 0.972549 0.917647);
+    --_colors---white: color(display-p3 1 1 1);
+    --_colors---gradient--green-stop-1: color(display-p3 0.54902 0.733333 0.701961);
+    --_colors---gradient--green-stop-2: color(display-p3 0.239216 0.498039 0.541176);
+    --_colors---gradient--green-stop-3: color(display-p3 0.160784 0.337255 0.368627);
+    --_colors---gradient--highlight-stop-1: color(display-p3 0.890196 0.627451 0.447059);
+    --_colors---gradient--highlight-stop-2: color(display-p3 0.94902 0.772549 0.486275);
+    --_colors---gradient--green-stop-1-light: color(display-p3 0.658824 0.831373 0.776471);
+    --_colors---gradient--green-stop-2-light: color(display-p3 0.333333 0.643137 0.698039);
+    --_colors---gradient--peach-stop-1: color(display-p3 0.909804 0.678431 0.462745);
+    --_colors---gradient--peach-stop-2: color(display-p3 0.94902 0.772549 0.486275);
+    --_colors---gradient--peach-stop-3: color(display-p3 0.780392 0.835294 0.623529);
+  }
+}
+
+/* ------------------------------------------------
+   03. Reset & Box Model
+------------------------------------------------ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeSpeed;
+  text-size-adjust: 100%;
+  text-decoration-skip-ink: auto;
+  text-decoration-thickness: 8%;
+  text-underline-offset: -8%;
+  text-underline-position: from-font;
+}
+
+html {
+  scroll-behavior: initial;
+  scrollbar-width: none; /* Firefox */
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  width: 100vw;
+  /* IMPORTANT: one declaration only (a second line would override the first) */
+  font-feature-settings:
+    'liga' 1,
+    'calt' 1;
+  -ms-overflow-style: none; /* IE & Edge */
+}
+
+/* Hide scrollbars universally */
+body::-webkit-scrollbar,
+body ::-webkit-scrollbar {
+  display: none;
+}
+
+svg {
+  max-width: none;
+  height: auto;
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+
+a {
+  color: inherit;
+}
+
+/* ------------------------------------------------
+   04. Typography Utilities
+------------------------------------------------ */
+/* Same behavior, lower specificity so Webflow overrides stay easy */
+.rte :where(:first-child, div:first-child > :first-child),
+.content-rte :where(:first-child, div:first-child > :first-child),
+.case-study :where(:first-child, div:first-child > :first-child) {
+  margin-top: 0 !important;
+}
+
+.rte :where(:last-child, div:first-child > :last-child),
+.content-rte :where(:last-child, div:first-child > :last-child),
+.case-study :where(:last-child, div:first-child > :last-child) {
+  margin-bottom: 0 !important;
+}
+
+.w-richtext::after,
+.w-richtext::before {
+  display: none;
+}
+
+/* ------------------------------------------------
+   05. Utility Attributes
+------------------------------------------------ */
+[scroll-show='false'] {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+[scroll-show='false']::-webkit-scrollbar {
+  display: none;
+}
+
+/* Truncate Text Utility (single core rule + variable override) */
+[data-truncate] {
+  --truncate-lines: 1;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-wrap: break-word;
+  -webkit-line-clamp: var(--truncate-lines);
+}
+
+[data-truncate='1'] {
+  --truncate-lines: 1;
+}
+
+[data-truncate='2'] {
+  --truncate-lines: 2;
+}
+
+/* Selection Highlight */
+@supports (background-color: color-mix(in srgb, black 10%, transparent)) {
+  ::selection {
+    background-color: color-mix(in srgb, currentColor 12%, transparent);
+    color: var(--color-accent);
+    text-shadow: none;
+  }
+  ::-moz-selection {
+    background-color: color-mix(in srgb, currentColor 12%, transparent);
+    color: var(--color-accent);
+    text-shadow: none;
+  }
+}
+
+[data-theme='dark'] {
+  background-color: var(--_colors---bg--dark);
+  color: var(--_colors---text--light);
+}
+
+[data-theme='dark-transparent'] {
+  color: var(--_colors---text--light) !important;
+  background-color: transparent;
+}
+
+[data-gradient] {
+  background: linear-gradient(90deg, #db4ed7 0%, #b370dc 46.32%, #61b4e7 82.69%);
+}
+
+[data-gradient-text] {
+  -webkit-background-clip: text;
+  background-clip: text;
+  background-repeat: repeat-x;
+  -webkit-text-fill-color: transparent;
+  color: inherit;
+}
+
+[data-bottom-padding='0'] {
+  padding-bottom: 0 !important;
+}
+
 /* ============================================================
    05. COMPONENTS & MOTION
    ============================================================ */
 
-/* repo-css: designer-cant — @keyframes, pseudo-element effects and opt-in classes paired with JS */
+/* --- pomp §06 Interactive Link Effects ---
+   repo-css: designer-cant — ::after underline effects */
+:root {
+  /* Scaling System */
+  --size-unit: 16; /* Body font-size in design units (no px) */
+  --size-container-ideal: 1680;
+  --size-container-min: 1280px;
+  --size-container-max: 1920px;
+  --size-container: clamp(var(--size-container-min), 100vw, var(--size-container-max));
+  --size-font: calc(var(--size-container) / (var(--size-container-ideal) / var(--size-unit)));
+  font-size: var(--size-font);
+  /* Color aliases (still uses the existing --_colors---* vars) */
+  --color-accent: var(--_colors---accent, #5498dc);
+  --color-bg-dark: var(--_colors---bg--dark, #0b0e14);
+  --color-text-light: var(--_colors---text-color--light, #f2f5ff);
+  /* Existing tokens (kept as-is) */
+  --base---box-opacity: 50%;
+  --shadow-blur: 3em;
+  --address-icon-fill: var(--color-accent);
+  /* Motion + timing */
+  --ease-bbs: cubic-bezier(0.65, 0.05, 0, 1);
+  --dur-bbs: 735ms;
+  /* Underline effect */
+  --underline-top: 100%;
+  --underline-height: 1px;
+  --inline-underline-opacity: 0.48;
+  /* Loops */
+  --loop-x-duration: 60s;
+  --loop-y-duration: 32s;
+  /* SVG dash */
+  --svg-dash-duration: 8s;
+  --svg-dash-offset: 600;
+  /* Zoom */
+  --image-zoom-scale: 1.12;
+  /* Brand ground — used as the hero fallback so a failed video can never
+     leave the page black. Matches the published body background. */
+  --brand-ground: #392ae3;
+}
 
+/* Tablet */
+@media screen and (max-width: 991px) {
+  :root {
+    --size-container-ideal: 834;
+    --size-container-min: 768px;
+    --size-container-max: 991px;
+  }
+}
+
+/* Mobile Landscape */
+@media screen and (max-width: 767px) {
+  :root {
+    --size-container-ideal: 430;
+    --size-container-min: 480px;
+    --size-container-max: 767px;
+  }
+}
+
+/* Mobile Portrait */
+@media screen and (max-width: 479px) {
+  :root {
+    --size-container-ideal: 430;
+    --size-container-min: 320px;
+    --size-container-max: 428px;
+  }
+}
+
+/* ------------------------------------------------
+   02. Color System: OKLCH and Display-P3 Fallback
+------------------------------------------------ */
+@supports (color: oklch(50% 0.2 280)) {
+  :root {
+    --_colors---black: oklch(0% 0 0);
+    --_colors---jet-black: oklch(27.44099% 0.01325 253.0412);
+    --_colors---hsa-green: oklch(41.08666% 0.04898 209.281);
+    --_colors---peach: oklch(68.97933% 0.11222 35.797);
+    --_colors---vanilla: oklch(97.76604% 0.01869 96.8597);
+    --_colors---white: oklch(100% 0 89.8756);
+    --_colors---gradient--green-stop-1: oklch(75.63116% 0.05108 183.3079);
+    --_colors---gradient--green-stop-2: oklch(55.78373% 0.06895 209.7173);
+    --_colors---gradient--green-stop-3: oklch(42.47057% 0.05105 210.5168);
+    --_colors---gradient--highlight-stop-1: oklch(76.03173% 0.10063 55.06835);
+    --_colors---gradient--highlight-stop-2: oklch(84.73567% 0.10453 78.735);
+    --_colors---gradient--green-stop-1-light: oklch(83.46599% 0.05012 173.6354);
+    --_colors---gradient--green-stop-2-light: oklch(67.39397% 0.08011 210.4337);
+    --_colors---gradient--peach-stop-1: oklch(79.05355% 0.09929 63.5832);
+    --_colors---gradient--peach-stop-2: oklch(84.73567% 0.10453 78.735);
+    --_colors---gradient--peach-stop-3: oklch(84.88607% 0.07339 119.7884);
+  }
+}
+
+@supports (color: color(display-p3 1 0 0)) {
+  :root {
+    --_colors---black: color(display-p3 0 0 0);
+    --_colors---jet-black: color(display-p3 0.137255 0.156863 0.180392);
+    --_colors---hsa-green: color(display-p3 0.152941 0.321569 0.34902);
+    --_colors---peach: color(display-p3 0.843137 0.505882 0.415686);
+    --_colors---vanilla: color(display-p3 0.984314 0.972549 0.917647);
+    --_colors---white: color(display-p3 1 1 1);
+    --_colors---gradient--green-stop-1: color(display-p3 0.54902 0.733333 0.701961);
+    --_colors---gradient--green-stop-2: color(display-p3 0.239216 0.498039 0.541176);
+    --_colors---gradient--green-stop-3: color(display-p3 0.160784 0.337255 0.368627);
+    --_colors---gradient--highlight-stop-1: color(display-p3 0.890196 0.627451 0.447059);
+    --_colors---gradient--highlight-stop-2: color(display-p3 0.94902 0.772549 0.486275);
+    --_colors---gradient--green-stop-1-light: color(display-p3 0.658824 0.831373 0.776471);
+    --_colors---gradient--green-stop-2-light: color(display-p3 0.333333 0.643137 0.698039);
+    --_colors---gradient--peach-stop-1: color(display-p3 0.909804 0.678431 0.462745);
+    --_colors---gradient--peach-stop-2: color(display-p3 0.94902 0.772549 0.486275);
+    --_colors---gradient--peach-stop-3: color(display-p3 0.780392 0.835294 0.623529);
+  }
+}
+
+/* ------------------------------------------------
+   03. Reset & Box Model
+------------------------------------------------ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeSpeed;
+  text-size-adjust: 100%;
+  text-decoration-skip-ink: auto;
+  text-decoration-thickness: 8%;
+  text-underline-offset: -8%;
+  text-underline-position: from-font;
+}
+
+html {
+  scroll-behavior: initial;
+  scrollbar-width: none; /* Firefox */
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  width: 100vw;
+  /* IMPORTANT: one declaration only (a second line would override the first) */
+  font-feature-settings:
+    'liga' 1,
+    'calt' 1;
+  -ms-overflow-style: none; /* IE & Edge */
+}
+
+/* Hide scrollbars universally */
+body::-webkit-scrollbar,
+body ::-webkit-scrollbar {
+  display: none;
+}
+
+svg {
+  max-width: none;
+  height: auto;
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+
+a {
+  color: inherit;
+}
+
+/* ------------------------------------------------
+   04. Typography Utilities
+------------------------------------------------ */
+/* Same behavior, lower specificity so Webflow overrides stay easy */
+.rte :where(:first-child, div:first-child > :first-child),
+.content-rte :where(:first-child, div:first-child > :first-child),
+.case-study :where(:first-child, div:first-child > :first-child) {
+  margin-top: 0 !important;
+}
+
+.rte :where(:last-child, div:first-child > :last-child),
+.content-rte :where(:last-child, div:first-child > :last-child),
+.case-study :where(:last-child, div:first-child > :last-child) {
+  margin-bottom: 0 !important;
+}
+
+.w-richtext::after,
+.w-richtext::before {
+  display: none;
+}
+
+/* ------------------------------------------------
+   05. Utility Attributes
+------------------------------------------------ */
+[scroll-show='false'] {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+[scroll-show='false']::-webkit-scrollbar {
+  display: none;
+}
+
+/* Truncate Text Utility (single core rule + variable override) */
+[data-truncate] {
+  --truncate-lines: 1;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-wrap: break-word;
+  -webkit-line-clamp: var(--truncate-lines);
+}
+
+[data-truncate='1'] {
+  --truncate-lines: 1;
+}
+
+[data-truncate='2'] {
+  --truncate-lines: 2;
+}
+
+/* Selection Highlight */
+@supports (background-color: color-mix(in srgb, black 10%, transparent)) {
+  ::selection {
+    background-color: color-mix(in srgb, currentColor 12%, transparent);
+    color: var(--color-accent);
+    text-shadow: none;
+  }
+  ::-moz-selection {
+    background-color: color-mix(in srgb, currentColor 12%, transparent);
+    color: var(--color-accent);
+    text-shadow: none;
+  }
+}
+
+[data-theme='dark'] {
+  background-color: var(--_colors---bg--dark);
+  color: var(--_colors---text--light);
+}
+
+[data-theme='dark-transparent'] {
+  color: var(--_colors---text--light) !important;
+  background-color: transparent;
+}
+
+[data-gradient] {
+  background: linear-gradient(90deg, #db4ed7 0%, #b370dc 46.32%, #61b4e7 82.69%);
+}
+
+[data-gradient-text] {
+  -webkit-background-clip: text;
+  background-clip: text;
+  background-repeat: repeat-x;
+  -webkit-text-fill-color: transparent;
+  color: inherit;
+}
+
+[data-bottom-padding='0'] {
+  padding-bottom: 0 !important;
+}
+
+/* ------------------------------------------------
+   06. Interactive Link Effects
+------------------------------------------------ */
 .link-underline {
   position: relative;
 }
 
 .link-underline::after {
-  content: "";
+  content: '';
   position: absolute;
   top: var(--underline-top);
   left: 0%;
@@ -310,56 +1182,333 @@ html.is-loading body {
   width: 0%;
 }
 
-/* Real text-decoration, not a pseudo-element: this is the variant for
-   links inside a paragraph, and an absolutely-positioned ::after cannot
-   follow one across a line break — it would draw a single bar over the
-   whole inline box. Decoration wraps per line fragment for free, and
-   inherits the skip-ink / thickness / offset set globally in 02 BASE.
-
-   The 0-1-0 class beats `a { text-decoration: none }` in 02 BASE.
-   First color declaration is the fallback where color-mix is missing:
-   a full-strength underline rather than none at all.
-
-   Links inside Content RTE get this without the class: the CMS generates
-   the <a> and there is nothing to put a class on. Listed here rather than
-   copied into the prose block below so the treatment has one definition. */
-.inline-link-underline,
-.content-rte a {
-  text-decoration-line: underline;
-  text-decoration-color: currentColor;
-  text-decoration-color: color-mix(
-    in srgb,
-    currentColor calc(var(--inline-underline-opacity) * 100%),
-    transparent
-  );
-  transition: text-decoration-color var(--dur-bbs) var(--ease-bbs);
+.inline-link-underline {
+  position: relative;
+  --underline-top: 96%;
+  --inline-underline-opacity: 0.24;
 }
 
-.inline-link-underline:hover,
-.content-rte a:hover {
-  text-decoration-color: currentColor;
+.inline-link-underline::after {
+  content: '';
+  position: absolute;
+  top: var(--underline-top);
+  left: 0%;
+  height: var(--underline-height);
+  width: 100%;
+  background: currentColor;
+  opacity: var(--inline-underline-opacity);
+  transition: opacity var(--dur-bbs) var(--ease-bbs);
 }
 
-/* Button link — the icon nudges forward on hover. The transition sits on
-   the icon rather than on the :hover rule so it eases back out when the
-   pointer leaves, not just on the way in. */
-.button-link .icon {
-  transition: transform var(--dur-bbs) var(--ease-bbs);
+.inline-link-underline:hover::after {
+  opacity: 1;
 }
 
-.button-link:hover .icon {
-  transform: translateX(var(--button-icon-shift));
+/* --- pomp §07 Animations (its reduced-motion block is in §07 below) ---
+   repo-css: designer-cant — @keyframes marquees and SVG dash */
+:root {
+  /* Scaling System */
+  --size-unit: 16; /* Body font-size in design units (no px) */
+  --size-container-ideal: 1680;
+  --size-container-min: 1280px;
+  --size-container-max: 1920px;
+  --size-container: clamp(var(--size-container-min), 100vw, var(--size-container-max));
+  --size-font: calc(var(--size-container) / (var(--size-container-ideal) / var(--size-unit)));
+  font-size: var(--size-font);
+  /* Color aliases (still uses the existing --_colors---* vars) */
+  --color-accent: var(--_colors---accent, #5498dc);
+  --color-bg-dark: var(--_colors---bg--dark, #0b0e14);
+  --color-text-light: var(--_colors---text-color--light, #f2f5ff);
+  /* Existing tokens (kept as-is) */
+  --base---box-opacity: 50%;
+  --shadow-blur: 3em;
+  --address-icon-fill: var(--color-accent);
+  /* Motion + timing */
+  --ease-bbs: cubic-bezier(0.65, 0.05, 0, 1);
+  --dur-bbs: 735ms;
+  /* Underline effect */
+  --underline-top: 100%;
+  --underline-height: 1px;
+  --inline-underline-opacity: 0.48;
+  /* Loops */
+  --loop-x-duration: 60s;
+  --loop-y-duration: 32s;
+  /* SVG dash */
+  --svg-dash-duration: 8s;
+  --svg-dash-offset: 600;
+  /* Zoom */
+  --image-zoom-scale: 1.12;
+  /* Brand ground — used as the hero fallback so a failed video can never
+     leave the page black. Matches the published body background. */
+  --brand-ground: #392ae3;
 }
 
-.image-w img {
-  transition: transform var(--dur-bbs) var(--ease-bbs);
+/* Tablet */
+@media screen and (max-width: 991px) {
+  :root {
+    --size-container-ideal: 834;
+    --size-container-min: 768px;
+    --size-container-max: 991px;
+  }
 }
 
-.image-w:hover img {
-  transform: scale(var(--image-zoom-scale));
+/* Mobile Landscape */
+@media screen and (max-width: 767px) {
+  :root {
+    --size-container-ideal: 430;
+    --size-container-min: 480px;
+    --size-container-max: 767px;
+  }
 }
 
-/* Marquees — opt in after supplying duplicated tracks in markup or JS. */
+/* Mobile Portrait */
+@media screen and (max-width: 479px) {
+  :root {
+    --size-container-ideal: 430;
+    --size-container-min: 320px;
+    --size-container-max: 428px;
+  }
+}
+
+/* ------------------------------------------------
+   02. Color System: OKLCH and Display-P3 Fallback
+------------------------------------------------ */
+@supports (color: oklch(50% 0.2 280)) {
+  :root {
+    --_colors---black: oklch(0% 0 0);
+    --_colors---jet-black: oklch(27.44099% 0.01325 253.0412);
+    --_colors---hsa-green: oklch(41.08666% 0.04898 209.281);
+    --_colors---peach: oklch(68.97933% 0.11222 35.797);
+    --_colors---vanilla: oklch(97.76604% 0.01869 96.8597);
+    --_colors---white: oklch(100% 0 89.8756);
+    --_colors---gradient--green-stop-1: oklch(75.63116% 0.05108 183.3079);
+    --_colors---gradient--green-stop-2: oklch(55.78373% 0.06895 209.7173);
+    --_colors---gradient--green-stop-3: oklch(42.47057% 0.05105 210.5168);
+    --_colors---gradient--highlight-stop-1: oklch(76.03173% 0.10063 55.06835);
+    --_colors---gradient--highlight-stop-2: oklch(84.73567% 0.10453 78.735);
+    --_colors---gradient--green-stop-1-light: oklch(83.46599% 0.05012 173.6354);
+    --_colors---gradient--green-stop-2-light: oklch(67.39397% 0.08011 210.4337);
+    --_colors---gradient--peach-stop-1: oklch(79.05355% 0.09929 63.5832);
+    --_colors---gradient--peach-stop-2: oklch(84.73567% 0.10453 78.735);
+    --_colors---gradient--peach-stop-3: oklch(84.88607% 0.07339 119.7884);
+  }
+}
+
+@supports (color: color(display-p3 1 0 0)) {
+  :root {
+    --_colors---black: color(display-p3 0 0 0);
+    --_colors---jet-black: color(display-p3 0.137255 0.156863 0.180392);
+    --_colors---hsa-green: color(display-p3 0.152941 0.321569 0.34902);
+    --_colors---peach: color(display-p3 0.843137 0.505882 0.415686);
+    --_colors---vanilla: color(display-p3 0.984314 0.972549 0.917647);
+    --_colors---white: color(display-p3 1 1 1);
+    --_colors---gradient--green-stop-1: color(display-p3 0.54902 0.733333 0.701961);
+    --_colors---gradient--green-stop-2: color(display-p3 0.239216 0.498039 0.541176);
+    --_colors---gradient--green-stop-3: color(display-p3 0.160784 0.337255 0.368627);
+    --_colors---gradient--highlight-stop-1: color(display-p3 0.890196 0.627451 0.447059);
+    --_colors---gradient--highlight-stop-2: color(display-p3 0.94902 0.772549 0.486275);
+    --_colors---gradient--green-stop-1-light: color(display-p3 0.658824 0.831373 0.776471);
+    --_colors---gradient--green-stop-2-light: color(display-p3 0.333333 0.643137 0.698039);
+    --_colors---gradient--peach-stop-1: color(display-p3 0.909804 0.678431 0.462745);
+    --_colors---gradient--peach-stop-2: color(display-p3 0.94902 0.772549 0.486275);
+    --_colors---gradient--peach-stop-3: color(display-p3 0.780392 0.835294 0.623529);
+  }
+}
+
+/* ------------------------------------------------
+   03. Reset & Box Model
+------------------------------------------------ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeSpeed;
+  text-size-adjust: 100%;
+  text-decoration-skip-ink: auto;
+  text-decoration-thickness: 8%;
+  text-underline-offset: -8%;
+  text-underline-position: from-font;
+}
+
+html {
+  scroll-behavior: initial;
+  scrollbar-width: none; /* Firefox */
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  width: 100vw;
+  /* IMPORTANT: one declaration only (a second line would override the first) */
+  font-feature-settings:
+    'liga' 1,
+    'calt' 1;
+  -ms-overflow-style: none; /* IE & Edge */
+}
+
+/* Hide scrollbars universally */
+body::-webkit-scrollbar,
+body ::-webkit-scrollbar {
+  display: none;
+}
+
+svg {
+  max-width: none;
+  height: auto;
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+
+a {
+  color: inherit;
+}
+
+/* ------------------------------------------------
+   04. Typography Utilities
+------------------------------------------------ */
+/* Same behavior, lower specificity so Webflow overrides stay easy */
+.rte :where(:first-child, div:first-child > :first-child),
+.content-rte :where(:first-child, div:first-child > :first-child),
+.case-study :where(:first-child, div:first-child > :first-child) {
+  margin-top: 0 !important;
+}
+
+.rte :where(:last-child, div:first-child > :last-child),
+.content-rte :where(:last-child, div:first-child > :last-child),
+.case-study :where(:last-child, div:first-child > :last-child) {
+  margin-bottom: 0 !important;
+}
+
+.w-richtext::after,
+.w-richtext::before {
+  display: none;
+}
+
+/* ------------------------------------------------
+   05. Utility Attributes
+------------------------------------------------ */
+[scroll-show='false'] {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+[scroll-show='false']::-webkit-scrollbar {
+  display: none;
+}
+
+/* Truncate Text Utility (single core rule + variable override) */
+[data-truncate] {
+  --truncate-lines: 1;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-wrap: break-word;
+  -webkit-line-clamp: var(--truncate-lines);
+}
+
+[data-truncate='1'] {
+  --truncate-lines: 1;
+}
+
+[data-truncate='2'] {
+  --truncate-lines: 2;
+}
+
+/* Selection Highlight */
+@supports (background-color: color-mix(in srgb, black 10%, transparent)) {
+  ::selection {
+    background-color: color-mix(in srgb, currentColor 12%, transparent);
+    color: var(--color-accent);
+    text-shadow: none;
+  }
+  ::-moz-selection {
+    background-color: color-mix(in srgb, currentColor 12%, transparent);
+    color: var(--color-accent);
+    text-shadow: none;
+  }
+}
+
+[data-theme='dark'] {
+  background-color: var(--_colors---bg--dark);
+  color: var(--_colors---text--light);
+}
+
+[data-theme='dark-transparent'] {
+  color: var(--_colors---text--light) !important;
+  background-color: transparent;
+}
+
+[data-gradient] {
+  background: linear-gradient(90deg, #db4ed7 0%, #b370dc 46.32%, #61b4e7 82.69%);
+}
+
+[data-gradient-text] {
+  -webkit-background-clip: text;
+  background-clip: text;
+  background-repeat: repeat-x;
+  -webkit-text-fill-color: transparent;
+  color: inherit;
+}
+
+[data-bottom-padding='0'] {
+  padding-bottom: 0 !important;
+}
+
+/* ------------------------------------------------
+   06. Interactive Link Effects
+------------------------------------------------ */
+.link-underline {
+  position: relative;
+}
+
+.link-underline::after {
+  content: '';
+  position: absolute;
+  top: var(--underline-top);
+  left: 0%;
+  height: var(--underline-height);
+  width: 0%;
+  background: currentColor;
+  transition: width var(--dur-bbs) var(--ease-bbs);
+}
+
+.link-underline:hover::after {
+  width: 100%;
+}
+
+.link-underline:not(:hover)::after {
+  left: auto;
+  right: 0%;
+  width: 0%;
+}
+
+.inline-link-underline {
+  position: relative;
+  --underline-top: 96%;
+  --inline-underline-opacity: 0.24;
+}
+
+.inline-link-underline::after {
+  content: '';
+  position: absolute;
+  top: var(--underline-top);
+  left: 0%;
+  height: var(--underline-height);
+  width: 100%;
+  background: currentColor;
+  opacity: var(--inline-underline-opacity);
+  transition: opacity var(--dur-bbs) var(--ease-bbs);
+}
+
+.inline-link-underline:hover::after {
+  opacity: 1;
+}
+
+/* ------------------------------------------------
+   07. Animations
+------------------------------------------------ */
 @keyframes loopX {
   from {
     transform: translateX(0%);
@@ -388,15 +1537,14 @@ html.is-loading body {
   will-change: transform;
 }
 
-.loop-animate-x.reverse,
-.loop-animate-y.reverse {
-  animation-direction: reverse;
+.loop-animate-x.reverse {
+  animation: loopX var(--loop-x-duration) linear infinite reverse;
+  will-change: transform;
 }
 
-@keyframes svgDash {
-  to {
-    stroke-dashoffset: var(--svg-dash-offset);
-  }
+.loop-animate-y.reverse {
+  animation: loopY var(--loop-y-duration) linear infinite reverse;
+  will-change: transform;
 }
 
 .svg-animate-line {
@@ -405,123 +1553,259 @@ html.is-loading body {
 }
 
 .svg-animate-line.reverse {
-  animation-direction: reverse;
+  animation: svgDash var(--svg-dash-duration) linear infinite reverse;
 }
 
-/* Prose rhythm. The Designer can style the Rich Text wrapper but never the
-   h/p/ul/ol/li inside it — the CMS generates those and there is nothing to
-   hang a class on, so their spacing has to come from here.
-
-   Opted into with the Content RTE class, not applied to every .w-richtext.
-   §02 zeroes these margins because components space themselves with flex
-   gaps, and element margins there would add to the gap rather than replace
-   it; a Rich Text used as a component field wants to stay in that world.
-   Marking the ones that are prose keeps the choice explicit and reversible
-   per element.
-
-   :where() keeps the inner half at zero specificity, so the whole selector
-   is 0-1-0 — enough to beat the 0-0-1 element reset, weak enough that a
-   Designer class still wins. */
-.content-rte :where(h1, h2, h3, h4, h5, h6, p) {
-  margin-top: 1em;
-  margin-bottom: 0.5em;
+@keyframes svgDash {
+  to {
+    stroke-dashoffset: var(--svg-dash-offset);
+  }
 }
 
-.content-rte :where(ul, ol) {
-  margin-top: 1em;
-  margin-bottom: 1em;
+/* --- pomp §08 Components & Patterns ---
+   repo-css: designer-cant — parent :hover descendant effects, sibling
+   combinators (~), child combinators (> *), ::before/::after, attribute
+   line clamp. `.s-g-navigation.is-shrunk` is js-state (toggled by
+   src/modules/nav-shrink.ts). `.filter-radio-button…` reads the Webflow
+   variable --_colors---fg--blue (GOTCHAS.md). */
+:root {
+  /* Scaling System */
+  --size-unit: 16; /* Body font-size in design units (no px) */
+  --size-container-ideal: 1680;
+  --size-container-min: 1280px;
+  --size-container-max: 1920px;
+  --size-container: clamp(var(--size-container-min), 100vw, var(--size-container-max));
+  --size-font: calc(var(--size-container) / (var(--size-container-ideal) / var(--size-unit)));
+  font-size: var(--size-font);
+  /* Color aliases (still uses the existing --_colors---* vars) */
+  --color-accent: var(--_colors---accent, #5498dc);
+  --color-bg-dark: var(--_colors---bg--dark, #0b0e14);
+  --color-text-light: var(--_colors---text-color--light, #f2f5ff);
+  /* Existing tokens (kept as-is) */
+  --base---box-opacity: 50%;
+  --shadow-blur: 3em;
+  --address-icon-fill: var(--color-accent);
+  /* Motion + timing */
+  --ease-bbs: cubic-bezier(0.65, 0.05, 0, 1);
+  --dur-bbs: 735ms;
+  /* Underline effect */
+  --underline-top: 100%;
+  --underline-height: 1px;
+  --inline-underline-opacity: 0.48;
+  /* Loops */
+  --loop-x-duration: 60s;
+  --loop-y-duration: 32s;
+  /* SVG dash */
+  --svg-dash-duration: 8s;
+  --svg-dash-offset: 600;
+  /* Zoom */
+  --image-zoom-scale: 1.12;
+  /* Brand ground — used as the hero fallback so a failed video can never
+     leave the page black. Matches the published body background. */
+  --brand-ground: #392ae3;
 }
 
-.content-rte li {
-  margin-bottom: 0.25em;
+/* Tablet */
+@media screen and (max-width: 991px) {
+  :root {
+    --size-container-ideal: 834;
+    --size-container-min: 768px;
+    --size-container-max: 991px;
+  }
 }
 
-/* The list indent and the first/last-child margin trims already live in
-   §03 — that is where the rest of the Rich Text patching sits, and its
-   versions also cover the wrapper div Webflow sometimes nests. */
-
-/* ============================================================
-   06. UTILITIES
-   ============================================================ */
-
-/* repo-css: designer-cant — line clamp, masks, gradient text, scrollbar hiding */
-
-/* Anchor offset for the fixed header */
-:where([id]) {
-  scroll-margin-top: var(--nav-h);
+/* Mobile Landscape */
+@media screen and (max-width: 767px) {
+  :root {
+    --size-container-ideal: 430;
+    --size-container-min: 480px;
+    --size-container-max: 767px;
+  }
 }
 
-/* Opt-in scrollbar hiding — per element, never global */
-[scroll-show="false"] {
+/* Mobile Portrait */
+@media screen and (max-width: 479px) {
+  :root {
+    --size-container-ideal: 430;
+    --size-container-min: 320px;
+    --size-container-max: 428px;
+  }
+}
+
+/* ------------------------------------------------
+   02. Color System: OKLCH and Display-P3 Fallback
+------------------------------------------------ */
+@supports (color: oklch(50% 0.2 280)) {
+  :root {
+    --_colors---black: oklch(0% 0 0);
+    --_colors---jet-black: oklch(27.44099% 0.01325 253.0412);
+    --_colors---hsa-green: oklch(41.08666% 0.04898 209.281);
+    --_colors---peach: oklch(68.97933% 0.11222 35.797);
+    --_colors---vanilla: oklch(97.76604% 0.01869 96.8597);
+    --_colors---white: oklch(100% 0 89.8756);
+    --_colors---gradient--green-stop-1: oklch(75.63116% 0.05108 183.3079);
+    --_colors---gradient--green-stop-2: oklch(55.78373% 0.06895 209.7173);
+    --_colors---gradient--green-stop-3: oklch(42.47057% 0.05105 210.5168);
+    --_colors---gradient--highlight-stop-1: oklch(76.03173% 0.10063 55.06835);
+    --_colors---gradient--highlight-stop-2: oklch(84.73567% 0.10453 78.735);
+    --_colors---gradient--green-stop-1-light: oklch(83.46599% 0.05012 173.6354);
+    --_colors---gradient--green-stop-2-light: oklch(67.39397% 0.08011 210.4337);
+    --_colors---gradient--peach-stop-1: oklch(79.05355% 0.09929 63.5832);
+    --_colors---gradient--peach-stop-2: oklch(84.73567% 0.10453 78.735);
+    --_colors---gradient--peach-stop-3: oklch(84.88607% 0.07339 119.7884);
+  }
+}
+
+@supports (color: color(display-p3 1 0 0)) {
+  :root {
+    --_colors---black: color(display-p3 0 0 0);
+    --_colors---jet-black: color(display-p3 0.137255 0.156863 0.180392);
+    --_colors---hsa-green: color(display-p3 0.152941 0.321569 0.34902);
+    --_colors---peach: color(display-p3 0.843137 0.505882 0.415686);
+    --_colors---vanilla: color(display-p3 0.984314 0.972549 0.917647);
+    --_colors---white: color(display-p3 1 1 1);
+    --_colors---gradient--green-stop-1: color(display-p3 0.54902 0.733333 0.701961);
+    --_colors---gradient--green-stop-2: color(display-p3 0.239216 0.498039 0.541176);
+    --_colors---gradient--green-stop-3: color(display-p3 0.160784 0.337255 0.368627);
+    --_colors---gradient--highlight-stop-1: color(display-p3 0.890196 0.627451 0.447059);
+    --_colors---gradient--highlight-stop-2: color(display-p3 0.94902 0.772549 0.486275);
+    --_colors---gradient--green-stop-1-light: color(display-p3 0.658824 0.831373 0.776471);
+    --_colors---gradient--green-stop-2-light: color(display-p3 0.333333 0.643137 0.698039);
+    --_colors---gradient--peach-stop-1: color(display-p3 0.909804 0.678431 0.462745);
+    --_colors---gradient--peach-stop-2: color(display-p3 0.94902 0.772549 0.486275);
+    --_colors---gradient--peach-stop-3: color(display-p3 0.780392 0.835294 0.623529);
+  }
+}
+
+/* ------------------------------------------------
+   03. Reset & Box Model
+------------------------------------------------ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeSpeed;
+  text-size-adjust: 100%;
+  text-decoration-skip-ink: auto;
+  text-decoration-thickness: 8%;
+  text-underline-offset: -8%;
+  text-underline-position: from-font;
+}
+
+html {
+  scroll-behavior: initial;
+  scrollbar-width: none; /* Firefox */
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  width: 100vw;
+  /* IMPORTANT: one declaration only (a second line would override the first) */
+  font-feature-settings:
+    'liga' 1,
+    'calt' 1;
+  -ms-overflow-style: none; /* IE & Edge */
+}
+
+/* Hide scrollbars universally */
+body::-webkit-scrollbar,
+body ::-webkit-scrollbar {
+  display: none;
+}
+
+svg {
+  max-width: none;
+  height: auto;
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+
+a {
+  color: inherit;
+}
+
+/* ------------------------------------------------
+   04. Typography Utilities
+------------------------------------------------ */
+/* Same behavior, lower specificity so Webflow overrides stay easy */
+.rte :where(:first-child, div:first-child > :first-child),
+.content-rte :where(:first-child, div:first-child > :first-child),
+.case-study :where(:first-child, div:first-child > :first-child) {
+  margin-top: 0 !important;
+}
+
+.rte :where(:last-child, div:first-child > :last-child),
+.content-rte :where(:last-child, div:first-child > :last-child),
+.case-study :where(:last-child, div:first-child > :last-child) {
+  margin-bottom: 0 !important;
+}
+
+.w-richtext::after,
+.w-richtext::before {
+  display: none;
+}
+
+/* ------------------------------------------------
+   05. Utility Attributes
+------------------------------------------------ */
+[scroll-show='false'] {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-[scroll-show="false"]::-webkit-scrollbar {
+[scroll-show='false']::-webkit-scrollbar {
   display: none;
 }
 
-/* Line clamp */
+/* Truncate Text Utility (single core rule + variable override) */
 [data-truncate] {
   --truncate-lines: 1;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: var(--truncate-lines);
-  line-clamp: var(--truncate-lines);
   overflow: hidden;
   text-overflow: ellipsis;
   word-wrap: break-word;
+  -webkit-line-clamp: var(--truncate-lines);
 }
 
-[data-truncate="1"] {
+[data-truncate='1'] {
   --truncate-lines: 1;
 }
 
-[data-truncate="2"] {
+[data-truncate='2'] {
   --truncate-lines: 2;
 }
 
-[data-truncate="3"] {
-  --truncate-lines: 3;
+/* Selection Highlight */
+@supports (background-color: color-mix(in srgb, black 10%, transparent)) {
+  ::selection {
+    background-color: color-mix(in srgb, currentColor 12%, transparent);
+    color: var(--color-accent);
+    text-shadow: none;
+  }
+  ::-moz-selection {
+    background-color: color-mix(in srgb, currentColor 12%, transparent);
+    color: var(--color-accent);
+    text-shadow: none;
+  }
 }
 
-/* Read more — opt in only with a JS toggle that flips .is-expanded
-   and updates the toggle control's aria-expanded state. */
-[data-readmore="text"] {
-  --readmore-lines: 2;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: var(--readmore-lines);
-  line-clamp: var(--readmore-lines);
-  overflow: hidden;
+[data-theme='dark'] {
+  background-color: var(--_colors---bg--dark);
+  color: var(--_colors---text--light);
 }
 
-[data-readmore="text"].is-expanded {
-  display: block;
-  -webkit-line-clamp: unset;
-  line-clamp: none;
+[data-theme='dark-transparent'] {
+  color: var(--_colors---text--light) !important;
+  background-color: transparent;
 }
 
-[data-readmore="text"] > :first-child {
-  margin-top: 0;
+[data-gradient] {
+  background: linear-gradient(90deg, #db4ed7 0%, #b370dc 46.32%, #61b4e7 82.69%);
 }
 
-[data-readmore="text"] > :last-child {
-  margin-bottom: 0;
-}
-
-[data-readmore="toggle"] {
-  cursor: pointer;
-}
-
-/* Figma width passthrough — set --figma-size to the raw design pixel
-   number. --size-font (the fluid body size, §01) keeps the conversion on
-   the page scale even inside components with a different font-size. */
-[style*="--figma-size"] {
-  max-width: calc(var(--size-font) * var(--figma-size) / var(--size-unit));
-}
-
-/* Gradient fills */
 [data-gradient-text] {
   -webkit-background-clip: text;
   background-clip: text;
@@ -530,127 +1814,745 @@ html.is-loading body {
   color: inherit;
 }
 
-/* Edge fade masks — set --mask-*-size to tune a single edge */
-.mask-top,
-.mask-bottom,
-.mask-left,
-.mask-right {
-  --mask-fade: 14%;
-
-  -webkit-mask-image: linear-gradient(
-      to bottom,
-      transparent 0,
-      #000 var(--mask-t, 0%),
-      #000 calc(100% - var(--mask-b, 0%)),
-      transparent 100%
-    ),
-    linear-gradient(
-      to right,
-      transparent 0,
-      #000 var(--mask-l, 0%),
-      #000 calc(100% - var(--mask-r, 0%)),
-      transparent 100%
-    );
-  mask-image: linear-gradient(
-      to bottom,
-      transparent 0,
-      #000 var(--mask-t, 0%),
-      #000 calc(100% - var(--mask-b, 0%)),
-      transparent 100%
-    ),
-    linear-gradient(
-      to right,
-      transparent 0,
-      #000 var(--mask-l, 0%),
-      #000 calc(100% - var(--mask-r, 0%)),
-      transparent 100%
-    );
-
-  -webkit-mask-composite: source-in;
-  mask-composite: intersect;
+[data-bottom-padding='0'] {
+  padding-bottom: 0 !important;
 }
 
-.mask-top {
-  --mask-t: var(--mask-top-size, var(--mask-fade));
+/* ------------------------------------------------
+   06. Interactive Link Effects
+------------------------------------------------ */
+.link-underline {
+  position: relative;
 }
 
-.mask-bottom {
-  --mask-b: var(--mask-bottom-size, var(--mask-fade));
+.link-underline::after {
+  content: '';
+  position: absolute;
+  top: var(--underline-top);
+  left: 0%;
+  height: var(--underline-height);
+  width: 0%;
+  background: currentColor;
+  transition: width var(--dur-bbs) var(--ease-bbs);
 }
 
-.mask-left {
-  --mask-l: var(--mask-left-size, var(--mask-fade));
+.link-underline:hover::after {
+  width: 100%;
 }
 
-.mask-right {
-  --mask-r: var(--mask-right-size, var(--mask-fade));
+.link-underline:not(:hover)::after {
+  left: auto;
+  right: 0%;
+  width: 0%;
 }
 
-/* Selection */
-@supports (background-color: color-mix(in srgb, black 10%, transparent)) {
-  ::selection {
-    background-color: color-mix(in srgb, currentColor 12%, transparent);
-    color: var(--color-accent);
-    text-shadow: none;
+.inline-link-underline {
+  position: relative;
+  --underline-top: 96%;
+  --inline-underline-opacity: 0.24;
+}
+
+.inline-link-underline::after {
+  content: '';
+  position: absolute;
+  top: var(--underline-top);
+  left: 0%;
+  height: var(--underline-height);
+  width: 100%;
+  background: currentColor;
+  opacity: var(--inline-underline-opacity);
+  transition: opacity var(--dur-bbs) var(--ease-bbs);
+}
+
+.inline-link-underline:hover::after {
+  opacity: 1;
+}
+
+/* ------------------------------------------------
+   07. Animations
+------------------------------------------------ */
+@keyframes loopX {
+  from {
+    transform: translateX(0%);
+  }
+  to {
+    transform: translateX(-100%);
   }
 }
 
-/* ============================================================
-   07. ACCESSIBILITY
-   ============================================================ */
-
-/* repo-css: designer-cant — :focus-visible and prefers-reduced-motion overrides */
-
-:focus:not(:focus-visible) {
-  outline: none;
+@keyframes loopY {
+  from {
+    transform: translateY(0%);
+  }
+  to {
+    transform: translateY(-100%);
+  }
 }
 
-/* Fallback ring only (0-1-0). Form controls take their ring from a Focus
-   Visible state on their Designer class: a `.w-input:focus-visible` rule here
-   would tie with those states (0-2-0) and win on source order, overriding the
-   Designer (GOTCHAS: template focus rule). Give every input class its own
-   Focus Visible state and a Focus border colour — webflow.css
-   `.w-input:focus` sets outline 0 and a blue border. */
-:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+.loop-animate-x {
+  animation: loopX var(--loop-x-duration) linear infinite;
+  will-change: transform;
 }
 
+.loop-animate-y {
+  animation: loopY var(--loop-y-duration) linear infinite;
+  will-change: transform;
+}
+
+.loop-animate-x.reverse {
+  animation: loopX var(--loop-x-duration) linear infinite reverse;
+  will-change: transform;
+}
+
+.loop-animate-y.reverse {
+  animation: loopY var(--loop-y-duration) linear infinite reverse;
+  will-change: transform;
+}
+
+.svg-animate-line {
+  stroke-dasharray: 10 10 !important;
+  animation: svgDash var(--svg-dash-duration) linear infinite;
+}
+
+.svg-animate-line.reverse {
+  animation: svgDash var(--svg-dash-duration) linear infinite reverse;
+}
+
+@keyframes svgDash {
+  to {
+    stroke-dashoffset: var(--svg-dash-offset);
+  }
+}
+
+/* Motion respect */
 @media (prefers-reduced-motion: reduce) {
   .loop-animate-x,
   .loop-animate-y,
   .svg-animate-line {
     animation: none !important;
   }
-
   .image-w img,
-  .button-link .icon,
   .link-underline::after,
-  .inline-link-underline,
-  .content-rte a {
-    transition: none !important;
+  .inline-link-underline::after {
+    transition-duration: 1ms !important;
   }
+}
 
-  .image-w:hover img,
-  .button-link:hover .icon {
-    transform: none;
+/* ------------------------------------------------
+   08. Components & Patterns
+------------------------------------------------ */
+.image-w img {
+  transition: transform var(--dur-bbs) var(--ease-bbs);
+}
+
+.image-w:hover img {
+  transform: scale(var(--image-zoom-scale));
+}
+
+.s-wrapper::before,
+.s-wrapper::after {
+  display: none;
+}
+
+.filter-radio-button.w--redirected-checked ~ .filter-radio-button-label {
+  color: var(--_colors---fg--blue);
+}
+
+.work-card:hover .s-bg-w {
+  transform: scale(1.05);
+}
+
+.work-card:hover .work-card-bg-overlay {
+  opacity: 0;
+}
+
+.work-card:hover .work-card-icon-w {
+  transform: rotate(-90deg);
+}
+
+.work-card:hover .work-card-tags {
+  opacity: 1;
+}
+
+.s-g-navigation.is-shrunk {
+  --navbar--nav-height: 6.25em;
+}
+
+.s-g-navigation.is-shrunk .g-nav-brand-logo {
+  width: 3.75em;
+}
+
+[blog-card-description] {
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* Limit text to 2 lines */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Fallback for older browsers */
+  white-space: nowrap;
+}
+
+input[type='checkbox']:checked ~ .text-menu-label,
+input[type='radio']:checked ~ .text-menu-label {
+  color: white; /* Styling checked inputs */
+}
+
+.g-nav-menu-link > *:first-child {
+  transition: transform 0.735s cubic-bezier(0.64, 0.05, 0, 1);
+}
+
+.g-nav-menu-link:hover > *:first-child {
+  transform: translateX(0.5em);
+}
+
+.highlight-title-line > * {
+  position: relative;
+  z-index: 4;
+}
+
+/* --- pomp §09 Page Loader & Hero Media Failsafes ---
+   Two independent safety nets. Neither changes how the site looks when
+   everything works; both stop a single failure from blanking the page. */
+
+/* repo-css: designer-cant — @keyframes backstop for the page loader;
+   the html.wf-design-mode rule is canvas-preview. */
+:root {
+  /* Scaling System */
+  --size-unit: 16; /* Body font-size in design units (no px) */
+  --size-container-ideal: 1680;
+  --size-container-min: 1280px;
+  --size-container-max: 1920px;
+  --size-container: clamp(var(--size-container-min), 100vw, var(--size-container-max));
+  --size-font: calc(var(--size-container) / (var(--size-container-ideal) / var(--size-unit)));
+  font-size: var(--size-font);
+  /* Color aliases (still uses the existing --_colors---* vars) */
+  --color-accent: var(--_colors---accent, #5498dc);
+  --color-bg-dark: var(--_colors---bg--dark, #0b0e14);
+  --color-text-light: var(--_colors---text-color--light, #f2f5ff);
+  /* Existing tokens (kept as-is) */
+  --base---box-opacity: 50%;
+  --shadow-blur: 3em;
+  --address-icon-fill: var(--color-accent);
+  /* Motion + timing */
+  --ease-bbs: cubic-bezier(0.65, 0.05, 0, 1);
+  --dur-bbs: 735ms;
+  /* Underline effect */
+  --underline-top: 100%;
+  --underline-height: 1px;
+  --inline-underline-opacity: 0.48;
+  /* Loops */
+  --loop-x-duration: 60s;
+  --loop-y-duration: 32s;
+  /* SVG dash */
+  --svg-dash-duration: 8s;
+  --svg-dash-offset: 600;
+  /* Zoom */
+  --image-zoom-scale: 1.12;
+  /* Brand ground — used as the hero fallback so a failed video can never
+     leave the page black. Matches the published body background. */
+  --brand-ground: #392ae3;
+}
+
+/* Tablet */
+@media screen and (max-width: 991px) {
+  :root {
+    --size-container-ideal: 834;
+    --size-container-min: 768px;
+    --size-container-max: 991px;
+  }
+}
+
+/* Mobile Landscape */
+@media screen and (max-width: 767px) {
+  :root {
+    --size-container-ideal: 430;
+    --size-container-min: 480px;
+    --size-container-max: 767px;
+  }
+}
+
+/* Mobile Portrait */
+@media screen and (max-width: 479px) {
+  :root {
+    --size-container-ideal: 430;
+    --size-container-min: 320px;
+    --size-container-max: 428px;
+  }
+}
+
+/* ------------------------------------------------
+   02. Color System: OKLCH and Display-P3 Fallback
+------------------------------------------------ */
+@supports (color: oklch(50% 0.2 280)) {
+  :root {
+    --_colors---black: oklch(0% 0 0);
+    --_colors---jet-black: oklch(27.44099% 0.01325 253.0412);
+    --_colors---hsa-green: oklch(41.08666% 0.04898 209.281);
+    --_colors---peach: oklch(68.97933% 0.11222 35.797);
+    --_colors---vanilla: oklch(97.76604% 0.01869 96.8597);
+    --_colors---white: oklch(100% 0 89.8756);
+    --_colors---gradient--green-stop-1: oklch(75.63116% 0.05108 183.3079);
+    --_colors---gradient--green-stop-2: oklch(55.78373% 0.06895 209.7173);
+    --_colors---gradient--green-stop-3: oklch(42.47057% 0.05105 210.5168);
+    --_colors---gradient--highlight-stop-1: oklch(76.03173% 0.10063 55.06835);
+    --_colors---gradient--highlight-stop-2: oklch(84.73567% 0.10453 78.735);
+    --_colors---gradient--green-stop-1-light: oklch(83.46599% 0.05012 173.6354);
+    --_colors---gradient--green-stop-2-light: oklch(67.39397% 0.08011 210.4337);
+    --_colors---gradient--peach-stop-1: oklch(79.05355% 0.09929 63.5832);
+    --_colors---gradient--peach-stop-2: oklch(84.73567% 0.10453 78.735);
+    --_colors---gradient--peach-stop-3: oklch(84.88607% 0.07339 119.7884);
+  }
+}
+
+@supports (color: color(display-p3 1 0 0)) {
+  :root {
+    --_colors---black: color(display-p3 0 0 0);
+    --_colors---jet-black: color(display-p3 0.137255 0.156863 0.180392);
+    --_colors---hsa-green: color(display-p3 0.152941 0.321569 0.34902);
+    --_colors---peach: color(display-p3 0.843137 0.505882 0.415686);
+    --_colors---vanilla: color(display-p3 0.984314 0.972549 0.917647);
+    --_colors---white: color(display-p3 1 1 1);
+    --_colors---gradient--green-stop-1: color(display-p3 0.54902 0.733333 0.701961);
+    --_colors---gradient--green-stop-2: color(display-p3 0.239216 0.498039 0.541176);
+    --_colors---gradient--green-stop-3: color(display-p3 0.160784 0.337255 0.368627);
+    --_colors---gradient--highlight-stop-1: color(display-p3 0.890196 0.627451 0.447059);
+    --_colors---gradient--highlight-stop-2: color(display-p3 0.94902 0.772549 0.486275);
+    --_colors---gradient--green-stop-1-light: color(display-p3 0.658824 0.831373 0.776471);
+    --_colors---gradient--green-stop-2-light: color(display-p3 0.333333 0.643137 0.698039);
+    --_colors---gradient--peach-stop-1: color(display-p3 0.909804 0.678431 0.462745);
+    --_colors---gradient--peach-stop-2: color(display-p3 0.94902 0.772549 0.486275);
+    --_colors---gradient--peach-stop-3: color(display-p3 0.780392 0.835294 0.623529);
+  }
+}
+
+/* ------------------------------------------------
+   03. Reset & Box Model
+------------------------------------------------ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeSpeed;
+  text-size-adjust: 100%;
+  text-decoration-skip-ink: auto;
+  text-decoration-thickness: 8%;
+  text-underline-offset: -8%;
+  text-underline-position: from-font;
+}
+
+html {
+  scroll-behavior: initial;
+  scrollbar-width: none; /* Firefox */
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  width: 100vw;
+  /* IMPORTANT: one declaration only (a second line would override the first) */
+  font-feature-settings:
+    'liga' 1,
+    'calt' 1;
+  -ms-overflow-style: none; /* IE & Edge */
+}
+
+/* Hide scrollbars universally */
+body::-webkit-scrollbar,
+body ::-webkit-scrollbar {
+  display: none;
+}
+
+svg {
+  max-width: none;
+  height: auto;
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+
+a {
+  color: inherit;
+}
+
+/* ------------------------------------------------
+   04. Typography Utilities
+------------------------------------------------ */
+/* Same behavior, lower specificity so Webflow overrides stay easy */
+.rte :where(:first-child, div:first-child > :first-child),
+.content-rte :where(:first-child, div:first-child > :first-child),
+.case-study :where(:first-child, div:first-child > :first-child) {
+  margin-top: 0 !important;
+}
+
+.rte :where(:last-child, div:first-child > :last-child),
+.content-rte :where(:last-child, div:first-child > :last-child),
+.case-study :where(:last-child, div:first-child > :last-child) {
+  margin-bottom: 0 !important;
+}
+
+.w-richtext::after,
+.w-richtext::before {
+  display: none;
+}
+
+/* ------------------------------------------------
+   05. Utility Attributes
+------------------------------------------------ */
+[scroll-show='false'] {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+[scroll-show='false']::-webkit-scrollbar {
+  display: none;
+}
+
+/* Truncate Text Utility (single core rule + variable override) */
+[data-truncate] {
+  --truncate-lines: 1;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-wrap: break-word;
+  -webkit-line-clamp: var(--truncate-lines);
+}
+
+[data-truncate='1'] {
+  --truncate-lines: 1;
+}
+
+[data-truncate='2'] {
+  --truncate-lines: 2;
+}
+
+/* Selection Highlight */
+@supports (background-color: color-mix(in srgb, black 10%, transparent)) {
+  ::selection {
+    background-color: color-mix(in srgb, currentColor 12%, transparent);
+    color: var(--color-accent);
+    text-shadow: none;
+  }
+  ::-moz-selection {
+    background-color: color-mix(in srgb, currentColor 12%, transparent);
+    color: var(--color-accent);
+    text-shadow: none;
+  }
+}
+
+[data-theme='dark'] {
+  background-color: var(--_colors---bg--dark);
+  color: var(--_colors---text--light);
+}
+
+[data-theme='dark-transparent'] {
+  color: var(--_colors---text--light) !important;
+  background-color: transparent;
+}
+
+[data-gradient] {
+  background: linear-gradient(90deg, #db4ed7 0%, #b370dc 46.32%, #61b4e7 82.69%);
+}
+
+[data-gradient-text] {
+  -webkit-background-clip: text;
+  background-clip: text;
+  background-repeat: repeat-x;
+  -webkit-text-fill-color: transparent;
+  color: inherit;
+}
+
+[data-bottom-padding='0'] {
+  padding-bottom: 0 !important;
+}
+
+/* ------------------------------------------------
+   06. Interactive Link Effects
+------------------------------------------------ */
+.link-underline {
+  position: relative;
+}
+
+.link-underline::after {
+  content: '';
+  position: absolute;
+  top: var(--underline-top);
+  left: 0%;
+  height: var(--underline-height);
+  width: 0%;
+  background: currentColor;
+  transition: width var(--dur-bbs) var(--ease-bbs);
+}
+
+.link-underline:hover::after {
+  width: 100%;
+}
+
+.link-underline:not(:hover)::after {
+  left: auto;
+  right: 0%;
+  width: 0%;
+}
+
+.inline-link-underline {
+  position: relative;
+  --underline-top: 96%;
+  --inline-underline-opacity: 0.24;
+}
+
+.inline-link-underline::after {
+  content: '';
+  position: absolute;
+  top: var(--underline-top);
+  left: 0%;
+  height: var(--underline-height);
+  width: 100%;
+  background: currentColor;
+  opacity: var(--inline-underline-opacity);
+  transition: opacity var(--dur-bbs) var(--ease-bbs);
+}
+
+.inline-link-underline:hover::after {
+  opacity: 1;
+}
+
+/* ------------------------------------------------
+   07. Animations
+------------------------------------------------ */
+@keyframes loopX {
+  from {
+    transform: translateX(0%);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes loopY {
+  from {
+    transform: translateY(0%);
+  }
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+.loop-animate-x {
+  animation: loopX var(--loop-x-duration) linear infinite;
+  will-change: transform;
+}
+
+.loop-animate-y {
+  animation: loopY var(--loop-y-duration) linear infinite;
+  will-change: transform;
+}
+
+.loop-animate-x.reverse {
+  animation: loopX var(--loop-x-duration) linear infinite reverse;
+  will-change: transform;
+}
+
+.loop-animate-y.reverse {
+  animation: loopY var(--loop-y-duration) linear infinite reverse;
+  will-change: transform;
+}
+
+.svg-animate-line {
+  stroke-dasharray: 10 10 !important;
+  animation: svgDash var(--svg-dash-duration) linear infinite;
+}
+
+.svg-animate-line.reverse {
+  animation: svgDash var(--svg-dash-duration) linear infinite reverse;
+}
+
+@keyframes svgDash {
+  to {
+    stroke-dashoffset: var(--svg-dash-offset);
+  }
+}
+
+/* Motion respect */
+@media (prefers-reduced-motion: reduce) {
+  .loop-animate-x,
+  .loop-animate-y,
+  .svg-animate-line {
+    animation: none !important;
+  }
+  .image-w img,
+  .link-underline::after,
+  .inline-link-underline::after {
+    transition-duration: 1ms !important;
+  }
+}
+
+/* ------------------------------------------------
+   08. Components & Patterns
+------------------------------------------------ */
+.image-w img {
+  transition: transform var(--dur-bbs) var(--ease-bbs);
+}
+
+.image-w:hover img {
+  transform: scale(var(--image-zoom-scale));
+}
+
+.s-wrapper::before,
+.s-wrapper::after {
+  display: none;
+}
+
+.filter-radio-button.w--redirected-checked ~ .filter-radio-button-label {
+  color: var(--_colors---fg--blue);
+}
+
+.work-card:hover .s-bg-w {
+  transform: scale(1.05);
+}
+
+.work-card:hover .work-card-bg-overlay {
+  opacity: 0;
+}
+
+.work-card:hover .work-card-icon-w {
+  transform: rotate(-90deg);
+}
+
+.work-card:hover .work-card-tags {
+  opacity: 1;
+}
+
+.s-g-navigation.is-shrunk {
+  --navbar--nav-height: 6.25em;
+}
+
+.s-g-navigation.is-shrunk .g-nav-brand-logo {
+  width: 3.75em;
+}
+
+[blog-card-description] {
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* Limit text to 2 lines */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Fallback for older browsers */
+  white-space: nowrap;
+}
+
+input[type='checkbox']:checked ~ .text-menu-label,
+input[type='radio']:checked ~ .text-menu-label {
+  color: white; /* Styling checked inputs */
+}
+
+.g-nav-menu-link > *:first-child {
+  transition: transform 0.735s cubic-bezier(0.64, 0.05, 0, 1);
+}
+
+.g-nav-menu-link:hover > *:first-child {
+  transform: translateX(0.5em);
+}
+
+.highlight-title-line > * {
+  position: relative;
+  z-index: 4;
+}
+
+/* ------------------------------------------------
+   09. Page Loader & Hero Media Failsafes
+   Two independent safety nets. Neither changes how the site looks when
+   everything works; both stop a single failure from blanking the page.
+------------------------------------------------ */
+
+/* (a) The page loader is position:fixed at z-index 2147483647 and its only
+   exit is the Webflow page-load interaction writing display:none inline.
+   If that interaction never runs, the loader covers the whole site forever.
+   This animation is a timed backstop: the loader fades out and stops
+   receiving pointer events 4s after first paint no matter what. The
+   interaction normally finishes long before, sets display:none, and this
+   never becomes visible to anyone. */
+.g-page-loader {
+  animation: gPageLoaderFailsafe 0.4s ease 4s forwards;
+}
+
+@keyframes gPageLoaderFailsafe {
+  to {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+/* Never let the backstop hide the loader inside the Designer canvas. */
+html.wf-design-mode .g-page-loader {
+  display: none;
+  animation: none;
+}
+
+/* Honour reduced motion: skip straight to hidden rather than animating. */
+@media (prefers-reduced-motion: reduce) {
+  .g-page-loader {
+    animation-duration: 0.01s;
+  }
+}
+
+/* repo-css: override-webflow — pre-existing, needs approval/review
+   (GOTCHAS.md). A background colour the Designer could set on these
+   classes; kept in code as the hero-video failsafe. Paired with
+   src/modules/hero-video-guard.ts. */
+/* (b) The hero video is full-viewport with a transparent element, a
+   transparent wrapper and a transparent section, so a video that fails to
+   decode leaves only the black gradient fader painting — the page reads as
+   solid black. Painting the brand ground behind the video means a missing
+   or slow video degrades to a brand-coloured hero instead of a dead screen.
+   A poster frame on the <video> element is still the proper fix; this is
+   the layer underneath it. */
+.home-hero-default-bg {
+  background-color: var(--brand-ground);
+}
+
+.home-hero-default-bg video,
+.home-hero-default-bg .image-home-hero-default {
+  background-color: var(--brand-ground);
+}
+
+/* ============================================================
+   07. ACCESSIBILITY  (pomp §07 "Motion respect")
+   ============================================================ */
+
+/* repo-css: designer-cant — prefers-reduced-motion. Moved here from the
+   middle of pomp §07; every declaration is !important, so its position
+   does not affect the cascade. */
+/* Motion respect */
+@media (prefers-reduced-motion: reduce) {
+  .loop-animate-x,
+  .loop-animate-y,
+  .svg-animate-line {
+    animation: none !important;
+  }
+  .image-w img,
+  .link-underline::after,
+  .inline-link-underline::after {
+    transition-duration: 1ms !important;
   }
 }
 
 /* ============================================================
-   08. EDITOR & DEV SUPPORTS
+   08. EDITOR & DEV SUPPORTS  (old head inline <style>)
    ============================================================ */
 
-/* repo-css: canvas-preview — Designer canvas and editor escape hatches */
-
-/* Optional class for code-only embeds that should occupy no layout space. */
-.g-embed-code {
+/* repo-css: override-webflow — pre-existing, needs approval/review
+   (GOTCHAS.md). Hides the Webflow badge (.w-webflow-badge) and dev-support
+   elements on published pages. Moved verbatim from the inline <style> in
+   the old head snippet; that <style> came after pomp.min.css, and this is
+   still the last section. All !important, so position is not load-bearing. */
+/* Hiding Dev Supports */
+.g-embed-code,
+/* .g-grid-guide, */
+.w-webflow-badge,
+.cms-filter {
+  z-index: -99999 !important;
   display: none !important;
-}
-
-/* Keep future JS-driven entrance animations visible in the Editor. */
-.w-editor [data-anim] {
-  visibility: visible !important;
-  opacity: 1 !important;
-  transform: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
 }

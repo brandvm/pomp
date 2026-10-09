@@ -12,7 +12,11 @@ if (!source.includes('var RELEASE = null;')) throw new Error('loader.html must s
 function loader(release) {
   const text = source.replace('var RELEASE = null;', `var RELEASE = ${JSON.stringify(release)};`);
   return {
-    scripts: [...text.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(match => match[0]),
+    // Project deviation (wf-pomp): piece 1 also carries the GA4 inline
+    // script migrated from live, so keep only the three loader scripts —
+    // the ones that read or write window.WFC.
+    scripts: [...text.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(match => match[0])
+      .filter(script => script.includes('window.WFC')),
     links: [...text.matchAll(/<link\b[^>]*>/g)].map(match => match[0])
       .filter(link => /id="wfc-css/.test(link)).join('\n'),
   };

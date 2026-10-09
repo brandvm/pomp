@@ -1,0 +1,12 @@
+{
+  "prototypeUrl": "http://127.0.0.1:5173",
+  "stagingUrl": "https://pomp-c.webflow.io",
+  "repoDir": ".",
+  "bundlePattern": "brandvm\\.github\\.io/wf-pomp/(index\\.js|styles\\.css)",
+  "widths": [
+    [1440, 900],
+    [820, 1180],
+    [390, 844]
+  ],
+  "pages": ["/"]
+}

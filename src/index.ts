@@ -2,6 +2,11 @@
 // Feature code lives in src/modules/<name>.ts and exports an init
 // function that no-ops when its selector is absent from the page.
 import { initEnvironmentSwitcher } from './modules/environment-switcher';
+import { initServiceSliders } from './modules/service-slider';
+import { initLenis } from './modules/lenis';
+import { initNavShrink } from './modules/nav-shrink';
+import { initColonBreak } from './modules/colon-break';
+import { initHeroVideoGuard } from './modules/hero-video-guard';
 
 // Each module runs in isolation: one that throws is logged and skipped,
 // and every module after it still initializes.
@@ -21,6 +26,12 @@ function boot() {
   document.documentElement.classList.remove('is-loading');
 
   run('environment-switcher', initEnvironmentSwitcher);
+  // Project modules, in the order hamounbv/pomp js/pomp.js ran them.
+  run('service-slider', initServiceSliders);
+  run('lenis', initLenis);
+  run('nav-shrink', initNavShrink);
+  run('colon-break', initColonBreak);
+  run('hero-video-guard', initHeroVideoGuard);
   // Add project feature initializers here: run('<name>', init<Name>);
 }
 

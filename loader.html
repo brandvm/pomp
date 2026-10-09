@@ -1,6 +1,6 @@
 <!-- ============================================================
 Custom-code loading — three pieces, pasted into three different places
-in Webflow (piece 2 is two Embeds, 2a and 2b). Replace ORG and REPO (all occurrences, pieces 1 and 2). The release
+in Webflow (piece 2 is two Embeds, 2a and 2b). ORG and REPO are filled in (brandvm/wf-pomp). The release
 version lives in ONE place: RELEASE in piece 1.
 
   prod        = pinned jsDelivr tag (immutable)
@@ -32,7 +32,9 @@ published.
 
    Only things that must exist before the bundle does: the shared
    config (window.WFC), meta tags the browser reads at parse time,
-   connection warming, and the pre-paint scroll lock.
+   connection warming, and the pre-paint scroll lock. For this site it
+   also carries the head tags migrated from live: GA4, Ahrefs, Finsweet
+   (see TODO below) and the global JSON-LD.
 
    RELEASE is null until the first tag exists. While it is null, a
    page served from a custom domain uses the STAGING bundle and logs a
@@ -43,18 +45,52 @@ published.
    Site custom code is ignored by the Designer canvas, which is what
    we want here — no scroll lock, no preloader while designing.
 ------------------------------------------------------------ -->
-<meta name="theme-color" content="#000000" />
+<!-- Migrated from hamounbv/pomp webflow/_header.html (live head code).
+     Dropped vs live: the Swiper CDN stylesheet (now bundled in
+     dist/styles.css), the pomp.min.css link (now Embed 2a), and the inline
+     <style> (Lenis + dev-support hiding, now src/styles.css §04/§08). -->
+
+<!-- Theme Color Browser -->
+<meta name="theme-color" content="#392AE3" />
 
 <!-- Two lines on purpose: a stylesheet fetch and its font fetches are
      CORS-different and open separate connections. -->
 <link rel="preconnect" href="https://cdn.jsdelivr.net" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<!-- Webflow asset CDN (images, fonts, the hero video). -->
+<link rel="preconnect" href="https://cdn.prod.website-files.com" crossorigin />
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-MBMGSM1Q2Z"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag() {
+    dataLayer.push(arguments);
+  }
+  gtag('js', new Date());
+  gtag('config', 'G-MBMGSM1Q2Z');
+</script>
+
+<!-- Ahrefs Analytics -->
+<script src="https://analytics.ahrefs.com/analytics.js" data-key="43nMMp9mHzNNSXe2oyLLXw" async></script>
+
+<!-- Finsweet Attributes
+     TODO(template deviation): the template routes Finsweet through the
+     webflow-build skill's recipes/finsweet/ (bundled), never Finsweet's
+     script tags. These two tags are kept exactly as live has them to keep
+     the migration small; port them to the recipe in a follow-up and drop
+     these tags then. See GOTCHAS.md. -->
+<!-- [Attributes by Finsweet] CMS Load -->
+<script async src="https://cdn.jsdelivr.net/npm/@finsweet/attributes-cmsload@1/cmsload.js"></script>
+<!-- [Attributes by Finsweet] Smart Lightbox -->
+<script defer src="https://cdn.jsdelivr.net/npm/@finsweet/attributes-smartlightbox@1/smartlightbox.js"></script>
+
 
 <script>
   (function () {
     var RELEASE = null; // the release tag, e.g. "1.0.0" — the only version string
-    var OWNER = "ORG"; // the GitHub org or user that owns this repo
-    var SITE = "REPO"; // this repo's name
+    var OWNER = "brandvm"; // the GitHub org or user that owns this repo
+    var SITE = "wf-pomp"; // this repo's name
     var STAG = "https://" + OWNER + ".github.io/" + SITE + "/";
     var DEV = "http://localhost:3000/";
     var staging = /\.webflow\.io$/.test(location.hostname);
@@ -84,6 +120,207 @@ published.
     root.classList.add("is-loading");
     setTimeout(function () { root.classList.remove("is-loading"); }, 3000);
   })();
+</script>
+
+<!-- Global Schema (verbatim from live; sameAs filled from the site footer links) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "AdvertisingAgency",
+      "@id": "https://www.pompandcircumstancepr.com/#organization",
+      "name": "Pomp & Circumstance",
+      "alternateName": "Pomp & Circumstance PR",
+      "description": "Toronto boutique PR and creative agency delivering media relations, influencer relations, experiential marketing, events, content and social, paid media, design, and crisis communications for ambitious brands.",
+      "url": "https://www.pompandcircumstancepr.com",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://cdn.prod.website-files.com/62a5f6c6cc39b911d78bd5b5/69ee889eea478df4265b6b1c_Webclip.png"
+      },
+      "image": "https://cdn.prod.website-files.com/62a5f6c6cc39b911d78bd5b5/630e609dc3eac43c50eb5013_Digital%20Strategy.jpg",
+      "telephone": "+1-416-977-9797",
+      "email": "info@pomppr.com",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "292 Adelaide Street West, Suite 401",
+        "addressLocality": "Toronto",
+        "addressRegion": "ON",
+        "postalCode": "M5V 1P6",
+        "addressCountry": "CA"
+      },
+      "areaServed": [
+        {
+          "@type": "Country",
+          "name": "Canada"
+        },
+        {
+          "@type": "City",
+          "name": "Toronto"
+        }
+      ],
+      "knowsAbout": [
+        "Creative",
+        "Media Relations",
+        "Influencer Relations",
+        "Integrated Media",
+        "Corporate Media Relations",
+        "Content & Social",
+        "Events",
+        "Design",
+        "Paid Media",
+        "Experiential Marketing",
+        "Issues & Crisis Management",
+        "Thought Leadership"
+      ],
+      "sameAs": [
+        "https://www.instagram.com/pompandcirc",
+        "https://ca.linkedin.com/company/pomp-&-circumstance-pr"
+      ],
+      "subOrganization": {
+        "@type": "Organization",
+        "name": "Bonus Track",
+        "url": "https://www.thisisbonustrack.com/"
+      },
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Public Relations & Creative Services",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Creative",
+              "provider": {
+                "@id": "https://www.pompandcircumstancepr.com/#organization"
+              }
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Media Relations",
+              "provider": {
+                "@id": "https://www.pompandcircumstancepr.com/#organization"
+              }
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Influencer Relations",
+              "provider": {
+                "@id": "https://www.pompandcircumstancepr.com/#organization"
+              }
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Integrated Media",
+              "provider": {
+                "@id": "https://www.pompandcircumstancepr.com/#organization"
+              }
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Corporate Media Relations",
+              "provider": {
+                "@id": "https://www.pompandcircumstancepr.com/#organization"
+              }
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Content & Social",
+              "provider": {
+                "@id": "https://www.pompandcircumstancepr.com/#organization"
+              }
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Events",
+              "provider": {
+                "@id": "https://www.pompandcircumstancepr.com/#organization"
+              }
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Design",
+              "provider": {
+                "@id": "https://www.pompandcircumstancepr.com/#organization"
+              }
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Paid Media",
+              "provider": {
+                "@id": "https://www.pompandcircumstancepr.com/#organization"
+              }
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Experiential Marketing",
+              "provider": {
+                "@id": "https://www.pompandcircumstancepr.com/#organization"
+              }
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Issues & Crisis Management",
+              "provider": {
+                "@id": "https://www.pompandcircumstancepr.com/#organization"
+              }
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Thought Leadership",
+              "provider": {
+                "@id": "https://www.pompandcircumstancepr.com/#organization"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://www.pompandcircumstancepr.com/#website",
+      "url": "https://www.pompandcircumstancepr.com/",
+      "name": "Pomp & Circumstance",
+      "publisher": {
+        "@id": "https://www.pompandcircumstancepr.com/#organization"
+      },
+      "inLanguage": "en"
+    }
+  ]
+}
 </script>
 
 <!-- ============================================================
@@ -134,7 +371,7 @@ published.
 <link
   id="wfc-css"
   rel="stylesheet"
-  href="https://ORG.github.io/REPO/styles.css?v=1"
+  href="https://brandvm.github.io/wf-pomp/styles.css?v=1"
 />
 
 <!-- ============================================================
@@ -171,6 +408,12 @@ footer is no longer guaranteed to execute first and the bundle can
 find its global undefined.
 
 Rollback = set RELEASE in piece 1 back to the previous tag and publish.
+
+Migrated from hamounbv/pomp webflow/_footer.html: this loader replaces
+the whole live footer. The Swiper and Lenis CDN <script defer> tags are
+gone (both are bundled into dist/index.js) and so is the pomp.min.js
+tag. The registered script colon_break-1.0.0.js must also be removed in
+Site settings (docs/handoff/MANUAL-TODO.md › Cutover).
 ============================================================ -->
 <script>
   (function () {

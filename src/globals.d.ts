@@ -1,7 +1,23 @@
+import type Lenis from 'lenis';
+
 export {};
 
+// Emitted by Webflow on every page (Site settings → GSAP / jQuery), NOT
+// bundled. Declared loosely; always guard with `typeof X !== 'undefined'`.
+interface GsapTickerLike {
+  add(callback: (time: number, deltaTime: number, frame: number) => void): void;
+  lagSmoothing(threshold: number, adjustedLag?: number): void;
+}
+
 declare global {
+  const gsap: { ticker: GsapTickerLike; [key: string]: any };
+  const ScrollTrigger: { update: (...args: any[]) => void; [key: string]: any };
+  const jQuery: any;
+  const $: any;
+
   interface Window {
+    // The Lenis instance, exposed by src/modules/lenis.ts.
+    lenis?: Lenis;
     WFC?: {
       staging: boolean;
       dev: boolean;
