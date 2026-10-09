@@ -2490,10 +2490,15 @@ html.wf-design-mode .g-page-loader {
   animation: none;
 }
 
-/* Honour reduced motion: skip straight to hidden rather than animating. */
+/* repo-css: designer-cant — prefers-reduced-motion (approved 2026-10-09).
+   Reduced motion: no page loader at all. The old rule only shortened the
+   backstop fade and kept its 4s delay, so these visitors still saw the full
+   loader animation. !important beats the inline display the page-load
+   interaction writes. Visitors with motion on see no change. */
 @media (prefers-reduced-motion: reduce) {
   .g-page-loader {
-    animation-duration: 0.01s;
+    display: none !important;
+    animation: none;
   }
 }
 
