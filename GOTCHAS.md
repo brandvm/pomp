@@ -27,6 +27,25 @@ collected from client repos into those files.
 
 <!-- Add new entries here, newest first. -->
 
+### 2026-10-09 · Swapping the stylesheet href in 2b causes a full-page layout shift
+- Area: loader
+- Scope: template-candidate
+- Symptom: after the cutover, Lighthouse CLS rose from ~0.001 to 0.2–0.5
+  on desktop (Services 0.518, Story 0.275, Blog 0.217). The parity check
+  missed it because it compares settled pages.
+- Cause: Embed 2b set `base.href` from the staging URL to the release
+  URL, and the footer loader set it again. Assigning a new href to a
+  `<link>` drops its rules until the new file arrives. This sheet sets
+  the root font size, so the page rendered at the wrong scale and jumped.
+- Fix: `WFC.setCSS` in 2b loads the target next to the current sheet and
+  removes the old one on `load` (and keeps it on `error`). The id moves
+  at once and an unchanged URL is a no-op. The footer calls it.
+  `tests/css-swap.spec.mjs` covers it. Staging CLS: Services 0.001,
+  Story 0.001, Blog 0.003. Installed through the MCP: the 2b Embed in
+  G | Components and the site footer code.
+- Status: fixed (this commit), live
+- Found by: claude
+
 ### 2026-10-09 · Setting RELEASE in loader.html breaks CI
 - Area: release
 - Scope: template-candidate
