@@ -167,7 +167,7 @@ collected from client repos into those files.
 - Fix: temporary Embed with an inline copy while designing, deleted before
   publish; it drifts unless refreshed (README "Known trade-off"). Prefer
   moving styles into the Designer.
-- Status: fixed by the migration to brandvm/wf-pomp once cut over — the
+- Status: fixed by the migration to brandvm/pomp once cut over — the
   template's Embed 2a links the staging stylesheet, which the canvas
   renders. Until cutover: documented.
 - Found by: human

@@ -13,7 +13,7 @@ until the cutover in `MANUAL-TODO.md` is done.
 
 ### Where everything went
 
-| hamounbv/pomp | brandvm/wf-pomp |
+| hamounbv/pomp | brandvm/pomp |
 | --- | --- |
 | `js/pomp.js` §1 Service slider (Swiper) | `src/modules/service-slider.ts` — Swiper 11 bundled (core + Navigation + Autoplay) |
 | `js/pomp.js` §2 Lenis | `src/modules/lenis.ts` — lenis@1.1.5 bundled; `window.lenis` kept; skipped in the Editor |

@@ -12,7 +12,7 @@ if (!source.includes('var RELEASE = null;')) throw new Error('loader.html must s
 function loader(release) {
   const text = source.replace('var RELEASE = null;', `var RELEASE = ${JSON.stringify(release)};`);
   return {
-    // Project deviation (wf-pomp): piece 1 also carries the GA4 inline
+    // Project deviation (pomp): piece 1 also carries the GA4 inline
     // script migrated from live, so keep only the three loader scripts —
     // the ones that read or write window.WFC.
     scripts: [...text.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(match => match[0])

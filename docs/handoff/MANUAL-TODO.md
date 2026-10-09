@@ -33,12 +33,12 @@ Live (www.pompandcircumstancepr.com) loads
 and keeps doing so until these steps are done. Nothing in Webflow has been
 changed by the migration. Steps 4 onward need the user's go-ahead.
 
-- [ ] 1. GitHub Pages source = GitHub Actions on brandvm/wf-pomp
+- [ ] 1. GitHub Pages source = GitHub Actions on brandvm/pomp
       (Settings → Pages). The migration session enabled it via the API —
       confirm.
 - [ ] 2. First push to `master` is green in the `staging` workflow and
-      `https://brandvm.github.io/wf-pomp/styles.css` and `index.js` load.
-- [ ] 3. Tag `1.0.0` on brandvm/wf-pomp (a commit whose CI passed;
+      `https://brandvm.github.io/pomp/styles.css` and `index.js` load.
+- [ ] 3. Tag `1.0.0` on brandvm/pomp (a commit whose CI passed;
       `git tag v1.0.0 && git push --tags`), then set `RELEASE = "1.0.0"` in
       `loader.html` piece 1 and commit. **Must happen before step 4**: the
       custom domain is already attached, and with `RELEASE = null` production

@@ -9,10 +9,10 @@ source of agent rules — edit this file, never a copy of it.
 Filled in by `pnpm new-project` on 2026-10-09.
 
 - Client / site: `Pomp & Circumstance PR`
-- GitHub: `brandvm/wf-pomp`, default branch `master`
+- GitHub: `brandvm/pomp`, default branch `master`
 - Webflow site ID: `62a5f6c6cc39b911d78bd5b5`
 - Staging site: `https://pomp-c.webflow.io`
-- Staging bundles: `https://brandvm.github.io/wf-pomp/`
+- Staging bundles: `https://brandvm.github.io/pomp/`
 - Production domain: `www.pompandcircumstancepr.com`
 - Production release: none yet (live site still on `hamounbv/pomp@1.0.0`)
 - Migrated from: `hamounbv/pomp` v1.0.0 — history and the cutover plan in
