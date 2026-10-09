@@ -18,7 +18,8 @@
     "wf:transitions": "node .claude/skills/webflow-build/scripts/transitions.mjs",
     "wf:a11y": "node .claude/skills/webflow-build/scripts/a11y.mjs",
     "wf:links": "node .claude/skills/webflow-build/scripts/links.mjs",
-    "wf:baseline": "node .claude/skills/webflow-build/scripts/baseline.mjs"
+    "wf:baseline": "node .claude/skills/webflow-build/scripts/baseline.mjs",
+    "parity": "node scripts/parity.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

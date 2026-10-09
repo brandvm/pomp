@@ -63,6 +63,7 @@
    position the CDN link had (head, before pomp.min.css). */
 @import 'swiper/css';
 @import 'swiper/css/navigation';
+@import 'swiper/css/a11y';
 
 /* ============================================================
    01. TOKENS  (pomp §01 Token Hub, §02 Color System)

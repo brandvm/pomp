@@ -16,3 +16,4 @@ playwright-report/
 
 # Harvest drafts from client repos (contain client details)
 .harvest/
+.parity/

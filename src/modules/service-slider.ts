@@ -2,10 +2,12 @@
 // scoped inside that wrapper. Ported from hamounbv/pomp js/pomp.js §1.
 //
 // Swiper is bundled (pnpm, swiper@11) instead of the swiper-bundle CDN tag:
-// only the core plus the Navigation and Autoplay modules this slider uses.
+// only the core plus the Navigation and Autoplay modules this slider uses,
+// and A11y, which the CDN bundle switched on by default (aria-labels on the
+// arrows and the live-region .swiper-notification) — kept for 1:1 parity.
 // Loop and Observer are part of Swiper core.
 import Swiper from 'swiper';
-import { Autoplay, Navigation } from 'swiper/modules';
+import { A11y, Autoplay, Navigation } from 'swiper/modules';
 import type { SwiperOptions } from 'swiper/types';
 
 export function initServiceSliders() {
@@ -18,7 +20,7 @@ export function initServiceSliders() {
     // Swiper ignores them here — exactly as it does on live. Kept for
     // parity; the cast lets them through the types.
     const options = {
-      modules: [Navigation, Autoplay],
+      modules: [Navigation, Autoplay, A11y],
       observer: true,
       observeParents: true,
       spaceBetween: 24,
