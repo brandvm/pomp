@@ -14,7 +14,8 @@ Filled in by `pnpm new-project` on 2026-10-09.
 - Staging site: `https://pomp-c.webflow.io`
 - Staging bundles: `https://brandvm.github.io/pomp/`
 - Production domain: `www.pompandcircumstancepr.com`
-- Production release: none yet (live site still on `hamounbv/pomp@1.0.0`)
+- Production release: `0.0.1` tagged (1:1 parity with live); not pasted into
+  Webflow yet — live still runs `hamounbv/pomp@1.0.0` until cutover
 - Migrated from: `hamounbv/pomp` v1.0.0 — history and the cutover plan in
   `docs/handoff/BUILD-NOTES.md` and `docs/handoff/MANUAL-TODO.md`
 

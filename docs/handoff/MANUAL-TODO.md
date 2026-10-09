@@ -49,8 +49,9 @@ changed by the migration. Steps 4 onward need the user's go-ahead.
       confirm.
 - [ ] 2. First push to `master` is green in the `staging` workflow and
       `https://brandvm.github.io/pomp/styles.css` and `index.js` load.
-- [ ] 3. Tag `1.0.0` on brandvm/pomp (a commit whose CI passed;
-      `git tag v1.0.0 && git push --tags`), then set `RELEASE = "1.0.0"` in
+- [x] 3. Tag `0.0.1` on brandvm/pomp (3177fb1, CI green, `pnpm parity`
+      0 differences on 10 pages × 3 widths; jsDelivr serves it
+      byte-identical to dist/), then set `RELEASE = "0.0.1"` in
       `loader.html` piece 1 and commit. **Must happen before step 4**: the
       custom domain is already attached, and with `RELEASE = null` production
       would serve the staging bundle.
@@ -84,3 +85,17 @@ changed by the migration. Steps 4 onward need the user's go-ahead.
 - [ ] 11. *(approved)* Publish to production; re-run the QA on the live domain.
 - [ ] 12. Afterwards: archive hamounbv/pomp (read-only); leave its tags —
       rollback until then is re-pasting its old snippets.
+
+## Later: move Webflow interactions into the repo
+
+Agreed with the user on 2026-10-09: after cutover, move the Webflow IX/IX2/IX3
+interactions (the page loader, scroll and hover animations, the nav menu
+drawer) into `src/modules/` as GSAP code. Work through it with the
+wf-template workflow (webflow-build skill) until the site follows it fully.
+Rules for each interaction:
+- Inventory it first: trigger, targets, timeline, breakpoints.
+- Port it to one module, then remove it in Webflow in the same release.
+- Pass `pnpm parity`. Animation end states must match; capture motion with
+  `wf:film` / `wf:transitions` before and after.
+- One release per group, with no visual or content change.
+
