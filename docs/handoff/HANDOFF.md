@@ -7,7 +7,9 @@ current during the build. Agents read it after `AGENTS.md` and `GOTCHAS.md`.
 ## Read first
 
 1. `AGENTS.md`, `GOTCHAS.md`, and the skill's `conventions.md`.
-2. This file, then `MANUAL-TODO.md` and `BUILD-NOTES.md` in this folder.
+2. This file, then `MANUAL-TODO.md` and `BUILD-NOTES.md` in this folder;
+   after the build handoff, `REVIEW.md` (feedback rounds until launch) and
+   `SEO-PLAN.md`.
 3. The approved design: <prototype folder and its URL, Figma file, or both>.
 
 ## Status
@@ -27,7 +29,8 @@ current during the build. Agents read it after `AGENTS.md` and `GOTCHAS.md`.
 | `/` | <prototype file or Figma frame> | Home | |
 | `/<page>` | | | |
 | `/<collection>/<item>` | | <Collection> template | CMS template |
-| `/design/style-guide` | | Style guide (folder `design`) | excluded from search |
+| `/design/style-guide` | | Style guide (folder `design`) | first page built; excluded from search |
+| `/design/media` | | Media (folder `design`) | only when a page plays a video; excluded from search |
 
 Breakpoints: 991 (tablet), 767 (mobile landscape), 479 (mobile). Checked at
 <widths>.

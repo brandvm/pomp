@@ -6,11 +6,12 @@ source of agent rules — edit this file, never a copy of it.
 
 ## Project facts
 
-Filled in by `pnpm new-project` on 2026-10-09.
+Filled in by `pnpm new-project` on 2026-10-09; moved to template 0.12.0 on 2026-11-03.
 
 - Client / site: `Pomp & Circumstance PR`
 - GitHub: `brandvm/pomp`, default branch `master`
 - Webflow site ID: `62a5f6c6cc39b911d78bd5b5`
+- Webflow MCP server: `webflow-pomp-c` (`.mcp.json`)
 - Staging site: `https://pomp-c.webflow.io`
 - Staging bundles: `https://brandvm.github.io/pomp/`
 - Production domain: `www.pompandcircumstancepr.com`
@@ -95,6 +96,17 @@ Before writing any CSS, decide where it belongs.
   `:root` (pre-existing, `override-webflow`, needs review — `GOTCHAS.md`).
   The template's resets and foundation rules are not adopted either, so the
   migration does not change how the live site renders.
+- **Project deviation:** the template's starter modules `aria-roles` and
+  `placeholders` and its Phosphor icon font are not in the bundle
+  (`pnpm phosphor none`): `dist/` stays byte-identical to what live loads.
+- **Project deviation:** `loader.html` is the loader installed on live, not
+  the template's newer one, so `pnpm test` keeps this repo's own
+  `css-swap` and `environment-switcher` specs and leaves out the template's
+  `loader`, `update-skills` and `bench` node checks (they test the
+  template's loader, icon font and template-only scripts). The
+  `aria-roles` and `placeholders` tests in `modules.spec.mjs` are skipped.
+- **Project addition:** `pnpm parity` (`scripts/parity.mjs`) compares live
+  against the old hamounbv/pomp code or, with `--target`, another origin.
 
 ## Webflow canvas facts
 
@@ -115,7 +127,10 @@ Before writing any CSS, decide where it belongs.
 
 A push updates the JS/CSS bundles only. Any change to `loader.html` must be
 re-pasted into Webflow and published to take effect — say so in the commit
-or PR description, and keep `loader.html` identical to what is installed.
+or PR description, and keep `loader.html` identical to what is installed,
+**except `RELEASE`**: it stays `null` in the repo (the browser tests fail
+otherwise, and with them CI and the staging deploy). The installed version
+lives only in the Webflow head code; record it in Project facts above.
 
 ## Commands and release
 
@@ -126,8 +141,12 @@ pnpm check    # tsc --noEmit + repo checks (scripts parse, skill links)
 pnpm test     # build + Playwright checks + the new-project test
 pnpm new-project --client "<Client>" --slug <site> --org <org>   # once, after creating the repo
 pnpm wf:pass /   # webflow-build checks: wf:compare, wf:pass, wf:anchors, wf:outline,
-                 # wf:film, wf:transitions, wf:a11y, wf:links, wf:baseline
-pnpm update-skills   # skills from the latest template release (ask first)
+                 # wf:film, wf:transitions, wf:a11y, wf:links, wf:baseline,
+                 # wf:html, wf:perf, wf:seo, wf:install, wf:parity, wf:overflow,
+                 # wf:tracking, wf:redirects, wf:domain;
+                 # on the prototype: wf:preflight, wf:styles
+pnpm update-skills   # skills, build tooling and new scripts from the latest template release (ask first)
+pnpm phosphor regular bold   # icon font weights in the bundle (default: regular; --subset keeps only the icons used)
 ```
 
 Node 22 and the pinned pnpm in `package.json`. `dist/` is committed: after
@@ -140,6 +159,21 @@ Release as the README describes: tag a commit whose CI passed, then set
 `RELEASE` in the head snippet — the only version string. Never move a pushed
 tag; cut the next patch. Never use `@latest` or a branch URL in production.
 
+## Webflow MCP connection
+
+Each client repo has its own MCP server name, `webflow-<slug>` in
+`.mcp.json`, so each keeps its own Webflow sign-in on the machine. The
+sign-in (OAuth token) never goes in the repo: these repos are public.
+
+- Use only the server named in Project facts. Never write to Webflow
+  through another client's server or the account-wide claude.ai Webflow
+  connector, which may reach other clients' sites.
+- Before the first write in a session, list the sites the server reaches
+  and check the site ID matches Project facts. A mismatch or extra sites →
+  stop and ask the user to re-authorise with only this site ticked.
+- The cloud (claude.ai/code) can't run the OAuth sign-in; Webflow MCP work
+  happens in a local Claude Code session opened in the workspace.
+
 ## Webflow MCP limits
 
 Worked around, not fixed — do not rediscover these.
@@ -147,13 +181,15 @@ Worked around, not fixed — do not rediscover these.
 - `custom_value` is rejected for Color and Size variables (`color-mix()`,
   `oklch()`, `calc()`). Create those through the variables JSON import with
   `valueType: "custom"`.
-- No variable rename or reorder within a collection. Rename in the Designer
-  (preserves ids and aliases; recreating does not).
+- No variable reorder within a collection. `rename_variable` works and
+  keeps ids and aliases (recreating does not); check the `name` in every
+  create result, which can come back suffixed ("-9").
 - The WHTML importer keeps classes that already exist, but drops the whole
   class list if any one is missing (create classes first, then re-check
   `styleNames`). It drops every `<img>` attribute and the asset link, turns
-  `<button>` into a Link and every `<span>` into a text Span, and trims a
-  space before `<br>`. The webflow-build skill's `lessons/mcp.md` has the
+  `<button>` into a Link and every `<span>` into a text Span, turns every
+  `style` attribute into an `inline-div-N` combo class, and trims a space
+  before `<br>`. The webflow-build skill's `lessons/mcp.md` has the
   fixes.
 - `get_all_elements` does not descend into component definitions — pass the
   component scope. An element "missing" from a page is usually inside one.

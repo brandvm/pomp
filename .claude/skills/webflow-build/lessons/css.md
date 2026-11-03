@@ -6,6 +6,98 @@ Harvested from client builds made from this template (`Scope:
 template-candidate` entries in their `GOTCHAS.md`). Module and file names
 refer to the project the lesson came from; Status is that project's.
 
+### 2026-10-28 · Webflow's body size variable is the text components' 1em
+- Area: css, designer
+- Symptom: setting Typography Role › Size › Body to 14px (0.875rem) at
+  mobile shrank every heading to 14px too.
+- Cause: Webflow's text components use that variable as their "1em":
+  `.c-heading h2`, `.c-paragraph p` and similar are `font-size:
+  var(--_typography-role---size--body)`, and the scale steps are `em`. A
+  rem value pins every one of them; an em value below 1 compounds when
+  nested.
+- Fix: leave the body role at 1em. Make body copy smaller through the
+  paragraph styles instead (a Typography Style mode on the paragraph
+  component at that breakpoint, with the same font, weight and line
+  height as Body), and set the same on each variant that should differ
+  (see designer.md "Component variant styles lose to the base class's
+  breakpoint rules").
+- Status: documented
+- Found by: claude
+
+### 2026-10-27 · Prototype breakpoint proposals on `:root` lose to the Body tag's modes
+- Area: css
+- Symptom: below 992px the prototype showed the starter's fonts and sizes
+  although `proposed.css` overrode the role variables at each breakpoint.
+- Cause: the starter applies breakpoint variable modes on the Body tag
+  style, so `webflow.css` sets the role and layout variables on `body`
+  inside each @media block; a proposal on `:root` is overridden for
+  everything inside body.
+- Fix: write breakpoint proposals on `:root, body`. The `proposed.css`
+  header says so (wf-template 0.9.0).
+- Status: fixed in wf-template 0.9.0
+- Found by: claude
+
+### 2026-10-27 · The prototype had no fluid scaling
+- Area: css
+- Symptom: at 1440 the prototype rendered at 16px = 1em while staging
+  rendered at 13.7px (the repo's §01 scaling), so prototype and staging
+  could never match at the check width.
+- Cause: the prototype doesn't load the repo's `src/styles.css`, and
+  `prototype.css` had no copy of §01.
+- Fix: `prototype.css` has a stand-in of §01 (wf-template 0.9.0). Keep
+  its `--size-container-ideal`, `-min` and `-max` the same as §01.
+- Status: fixed in wf-template 0.9.0
+- Found by: claude
+
+### 2026-10-27 · check:drift read Webflow's unspaced shorthands as drift
+- Area: css
+- Symptom: 12 "values that differ" on an untouched starter site
+  (footer, skip link and chip padding).
+- Cause: Webflow publishes `padding: var(--_a)var(--_b)` with no space
+  between the `var()` calls, and `var(--_a).625em` with a number straight
+  after one; the parser read the whole shorthand as each side's value.
+- Fix: `check-drift.mjs` splits values after a closing bracket at depth 0
+  too (wf-template 0.9.0).
+- Status: fixed in wf-template 0.9.0
+- Found by: claude
+
+### 2026-10-27 · check:states reported a pressed state missing after a control removed itself
+- Area: css
+- Symptom: "a.button: no pressed state" on several pages, although every
+  such control had an `:active` rule.
+- Cause: the check reloads the page per control and finds it by index. A
+  dismissible announcement bar remembered its dismissal in
+  `localStorage`, so after its close button was pressed the bar was gone
+  on every later load and each index pointed at another element.
+- Fix: `check-states.mjs` clears `localStorage` and `sessionStorage`
+  before every load (wf-template 0.9.0).
+- Status: fixed in wf-template 0.9.0
+- Found by: claude
+
+### 2026-10-19 · A `0fr` grid row still holds its item's padding
+- Area: css
+- Symptom: a dropdown animated with `grid-template-rows: 0fr → 1fr`
+  stopped at 41 px instead of 0 when closed.
+- Cause: a grid item's padding sets its minimum size, so a `0fr` track
+  still holds the padding.
+- Fix: the closed state also sets the item's vertical padding to 0,
+  transitioned with the rows, so the Designer padding returns when open.
+- Status: fixed in that project
+- Found by: claude
+
+### 2026-10-09 · Measure preloads; font preloads can make it worse
+- Area: css, perf
+- Symptom: font preloads for the heading and body fonts (both
+  `font-display: swap`) were expected to help LCP.
+- Cause: they compete with the render-blocking CSS for bandwidth.
+- Fix: A/B by injecting the `<link>`s into production HTML with Playwright
+  route interception (7 runs, median, 4× CPU, slow 4G): fonts gave
+  −20–40 ms LCP but +30–100 ms FCP, so they were dropped; an image preload
+  for a lazy LCP hero image gave −420 ms on one page and nothing on others
+  (a 5 KB SVG; a hero hidden behind IX3). Keep only measured wins.
+- Status: done
+- Found by: claude
+
 ### 2026-10-05 · Horizontal scrollers drag vertically
 - Area: css
 - Symptom: Slider Track could be dragged up and down while scrolling.
@@ -73,7 +165,10 @@ refer to the project the lesson came from; Status is that project's.
   the `.w-dropdown-toggle` reset broke Webflow's chevron spacing on another.
 - Fix: one project removed ten neutralizers so Webflow's own defaults stood
   unopposed. Delete a neutralizer the moment it fights the
-  Designer.
+  Designer. Delete it rather than comment it out: CSS comments don't
+  nest, so on that project a `/* … */` around a block that already held a
+  comment closed early, a "commented-out" `.w-nav` neutralizer had been
+  live all along, and a stray `*/` was left for esbuild to warn about.
 - Status: fixed in the template — selectable-component rules removed; only Designer-unselectable internals remain in §03
 - Found by: human
 
@@ -102,3 +197,112 @@ refer to the project the lesson came from; Status is that project's.
   needed, log it here so renames get checked.
 - Status: fixed in the template — the template no longer references Webflow variable names; the AGENTS.md policy forbids new ones without approval
 - Found by: human
+
+### 2026-10-09 · Prototype generators lose large breakpoints and `.w--` states
+- Area: css
+- Symptom: with a snapshot of an existing site in the prototype starter:
+  styles at Webflow's `large` / `xl` / `xxl` breakpoints (min-width 1280 /
+  1440 / 1920) were missing; Current and custom radio Checked / Focused
+  came out as invalid pseudo-classes (`:current`); the style guide's
+  swatch grids were one column wide, a pill radius in Spacing drew a bar
+  wider than the page, full-viewport classes made 100vh library tiles, and
+  `gen-style-guide.mjs` crashed on a class slug with `---`.
+- Cause: the generators assumed the starter site's snapshot (four
+  breakpoints, no class states, a Radius collection, small values).
+- Fix: `gen-webflow-css.mjs` emits min-width blocks and `.w--current` /
+  `.w--redirected-checked` / `.w--redirected-focus`; `gen-style-guide.mjs`
+  stretches `.sg-grid`, caps `.sg-tile` and `.sg-bar`, sends `Radius/`
+  variables to the Radius section, and filters empty slug parts.
+- Status: fixed in the template's prototype starter
+- Found by: claude
+
+### 2026-10-09 · Prototype stand-ins override an existing site's tag styles
+- Area: css
+- Symptom: with a snapshot of an existing site, prototype headings lost
+  their weight, links their colour and images their sizing.
+- Cause: `prototype.css` loads last and carried bare element rules
+  (`h1…p { font-weight: inherit }`, `a { color: inherit }`, `img {…}`),
+  the same specificity as the site's tag styles in the generated
+  `webflow.css`, so they won the tie.
+- Fix: the stand-ins are wrapped in `:where()`, so any tag style in
+  `webflow.css` wins and the stand-ins apply only where the snapshot sets
+  nothing.
+- Status: fixed in the template's prototype starter
+- Found by: claude
+
+### 2026-10-09 · `<button>` drops the inherited letter-spacing
+- Area: css
+- Symptom: accordion questions wrapped to two lines where the design has
+  one; the heading's −3% tracking was missing on the text inside the
+  button.
+- Cause: the browser's default stylesheet sets `letter-spacing: normal`
+  (and `word-spacing`, `text-transform`) on `<button>`; `font: inherit`
+  does not cover them.
+- Fix: `letter-spacing: inherit` (with `word-spacing` and `text-transform`)
+  on any class used on a `<button>` that should take its parent's type;
+  classes that set their own tracking are fine. A native-button reset in
+  the Designer (designer.md, "Native `<button type="submit">` in Webflow
+  forms") should include them.
+- Status: fixed in that project's prototype; template 0.7.1 §02 sets
+  `letter-spacing` and `word-spacing` to `inherit` on `:where(button)`
+  (zero specificity, so a Designer tag style or class still wins).
+  `text-transform` stays per class: normalize sets it at 0-0-1.
+- Found by: claude
+
+### 2026-10-15 · A script-hidden overlay blocks the Designer canvas
+- Area: css
+- Symptom: below 992px every click on the canvas selected the nav.
+- Cause: the full-screen mobile menu is hidden by a module (`hidden`); the
+  canvas runs no script, so it sat over the page at opacity 0. The canvas
+  also ignored `pointer-events: none`. (The 2a stylesheet link is fetched
+  without a cache-buster in the Designer, so a new repo rule can take up
+  to 10 minutes to reach the canvas.)
+- Fix: hide it on the canvas only:
+  `html.wf-design-mode .mobile-menu:not(.is-open) { display: none; }`
+  (tag `canvas-preview`). To edit the menu, add its open combo for the
+  session. Any overlay that a script hides needs the same rule.
+- Status: fixed in that project's repo
+- Found by: human
+
+### 2026-09-16 · A scroll lock belongs on `html` only: locking `body` un-sticks the header
+- Area: css
+- Symptom: on a scrolled page (always the case when arriving with a
+  #hash), the open mobile menu started above the viewport and only its
+  bottom-pinned button showed.
+- Cause: the open-menu state set `overflow: hidden` on `html` **and**
+  `body`. That makes `body` its own scroll container; the sticky header
+  then sticks inside `body`, which never scrolls, so it sat at the
+  document top off-screen and a menu offset measured from it went
+  negative. Forcing `position: relative` on the open header had the same
+  effect.
+- Fix: lock `html` only, drop any position override on the header, and
+  clamp offsets measured from it at 0. Use the same rule for every lock
+  (menu, modal, loader; `recipes/modal/` should follow it).
+- Status: fixed in that project's repo; template 0.7.0 §04 locks `html`
+  only.
+- Found by: claude
+
+### 2026-10-07 · Finsweet filters: style `.is-list-active`, and the operator is `contain`
+- Area: css, js
+- Symptom: (1) a filter set from the query string filtered the list, but
+  its checkbox looked inactive, and the first click removed the filter
+  while making the checkbox look active. (2) Year filter pills did
+  nothing; once they could be selected every year showed zero items, and
+  "All" never cleared the filter.
+- Cause: (1) Finsweet sets the real input and `.is-list-active`
+  correctly, but Webflow's decorative `.w--redirected-checked` isn't
+  synced when Finsweet initialises from the URL; the CSS styled the
+  Webflow class. (2) `fs-list-operator="contains"` isn't a Finsweet v2
+  value (it is `contain`), and an unknown value silently falls back to
+  `equal`; the "All" radio had no operator, so it became a separate
+  `equal` condition that never cleared the other. The labels also
+  published `for=""`, which detaches them from their nested radios (see
+  designer.md, "Duplicate ids in CMS lists and component instances").
+- Fix: style the Finsweet state (`.is-list-active` on the filter's
+  wrapper) as the source of truth, and keep the decorative Webflow
+  checkbox neutral when the wrapper is inactive. Give every radio in a
+  group the same `fs-list-operator`, spelled `contain`, and every label a
+  custom `for`. Check attribute values against the Finsweet v2 docs and
+  `recipes/finsweet/`: typos fail silently.
+- Status: fixed in two projects
+- Found by: claude + codex

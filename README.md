@@ -25,7 +25,8 @@ pnpm dev      # esbuild watch + server on :3000 (in memory, sourcemaps)
 pnpm build    # minified -> dist/ (commit the result)
 pnpm check    # tsc --noEmit
 pnpm test     # build + browser checks
-pnpm update-skills   # agent skills from the latest template release
+pnpm update-skills   # agent skills, build tooling and new scripts from the latest template release
+pnpm phosphor        # Phosphor icon font in the bundle: regular by default, `pnpm phosphor regular bold` adds weights
 ```
 
 `.wf-template.json` records the template version a repo was created from
@@ -55,9 +56,10 @@ Claude finds the site through the Webflow connector, runs
 `pnpm new-project`, lists the steps below that are yours, collects the
 inputs (design frame, CMS, SEO, states, content), and builds the
 prototype page by page. From the second session on, open Claude in
-`<Client>/`, not in the repo. The `webflow-build` skill
-([SKILL.md](.claude/skills/webflow-build/SKILL.md) › Project setup) has
-the details.
+`<Client>/`, not in the repo. The `webflow-prototype` skill
+([SKILL.md](.claude/skills/webflow-prototype/SKILL.md) › Project setup)
+has the details; the Webflow build then starts in its own session with
+the `webflow-build` skill.
 
 ## New project checklist
 
@@ -140,7 +142,10 @@ git tag vX.Y.Z && git push && git push --tags
 serve it. There is no force-add or un-track step.
 
 Then set `RELEASE = "X.Y.Z"` in the head code snippet — the only version
-string — and publish staging → verify → publish prod.
+string — and publish staging → verify → publish prod. Set it in Webflow
+only: `loader.html` keeps `RELEASE = null` (the browser tests enforce it,
+so committing a version fails CI and stops staging deploying). Record the
+installed version in `AGENTS.md` › Project facts.
 Rollback = set `RELEASE` back to the previous tag and publish. Never use
 `@latest` or branch URLs in prod.
 
@@ -194,11 +199,16 @@ src/
 build.mjs             esbuild config and dev server
 loader.html           the three Webflow snippets, documented
 scripts/              new-project setup and the repo checks
-tests/                Playwright checks and the new-project test
-docs/handoff/         HANDOFF, MANUAL-TODO and BUILD-NOTES for this project
-.claude/skills/       webflow-build (workflow, checklists, conventions,
-                      lessons, prototype starter, check scripts) and
+tests/                Playwright checks, the loader (node:vm) and new-project tests
+docs/handoff/         HANDOFF, MANUAL-TODO, BUILD-NOTES, REVIEW and SEO-PLAN for this project
+.claude/skills/       webflow-prototype (project setup, inputs, the
+                      localhost prototype and its starter, Figma),
+                      webflow-build (the Webflow build: checklists,
+                      conventions, lessons, check scripts, shared rules),
+                      webflow-style-guide (the fixed style guide layout,
+                      its generator and check),
                       webflow-launch (QA, launch, handoff, first 30 days)
+                      and webflow-audit (live sites and one-off fixes)
 AGENTS.md             agent rules; CLAUDE.md imports it
 GOTCHAS.md            the project's log of things that cost time
 webflow-build.config.json   URLs for the check scripts (pnpm new-project)
@@ -240,14 +250,25 @@ imports are relative.
   read by area. Entries tagged `template-candidate` are collected there.
 - [`docs/handoff/`](docs/handoff/HANDOFF.md) — the design handoff, manual
   Designer steps and build notes, kept current during the build.
-- [`.claude/skills/webflow-build`](.claude/skills/webflow-build/SKILL.md) —
-  the build workflow for Claude Code: design handoff → Webflow section by
-  section, checks against the prototype at three widths (`pnpm wf:*`), the
-  conventions, the lessons and a prototype starter.
-  [`webflow-launch`](.claude/skills/webflow-launch/SKILL.md) takes over at
-  the build handoff. Every repo from this template has both. Improvements are welcome from anyone with a
-  GitHub account: fork, change the skill, open a pull request (see the
-  skill's Contributing section).
+- The skills in `.claude/skills/`, one per phase, for Claude Code:
+  - [`webflow-prototype`](.claude/skills/webflow-prototype/SKILL.md):
+    project setup, the inputs, and the design built as a localhost
+    prototype (it never writes to Webflow);
+  - [`webflow-style-guide`](.claude/skills/webflow-style-guide/SKILL.md):
+    the style guide page in one fixed layout, the first page of the
+    prototype and of the build;
+  - [`webflow-build`](.claude/skills/webflow-build/SKILL.md): the Webflow
+    build, section by section, checked against the prototype at three
+    widths (`pnpm wf:*`), with the conventions, the lessons and the rules
+    all skills share;
+  - [`webflow-launch`](.claude/skills/webflow-launch/SKILL.md): from the
+    build handoff through launch and the first 30 days;
+  - [`webflow-audit`](.claude/skills/webflow-audit/SKILL.md): a site that
+    is already live (audit, small verified batches, one-off fixes).
+
+  Every repo from this template has them. Improvements are welcome from anyone with a
+  GitHub account: fork, change the skill, open a pull request (see
+  [`rules.md`](.claude/skills/webflow-build/rules.md) › Contributing).
 
 Every repo CSS rule carries a `/* repo-css: <tag> — why */` comment; the
 allowed tags are listed in `AGENTS.md`. Styling the Designer can express
@@ -266,11 +287,22 @@ Without a token (or a signed-in `gh`) only public repos are read.
 ## Webflow MCP
 
 `.mcp.json` carries the Webflow MCP server definition; `pnpm new-project`
-copies it to the workspace, since Claude Code only reads `.mcp.json` from
-the folder it starts in. Approve the project server on first launch, then
-run `/mcp` to authorise Webflow — OAuth is per-machine, so this is
-repeated on each new machine. The Figma connector (for designs sent as a
+names it `webflow-<slug>` and copies it to the workspace, since Claude Code
+only reads `.mcp.json` from the folder it starts in. Approve the project
+server on first launch, then run `/mcp` to sign in to Webflow and tick
+**only this client's site** (not the workspace box).
+
+Claude Code keeps one sign-in per server name, on the machine — so every
+client repo keeps its own, and opening a repo loads the sign-in for its
+site. The token is never in the repo (these repos are public); the sign-in
+is repeated on each new machine. The cloud (claude.ai/code) can't run it:
+do Webflow MCP work locally. The Figma connector (for designs sent as a
 Figma link) is connected once per account.
+
+Repos created before 0.7.2 share the name `webflow`, so signing in for one
+client replaced the other. Rename the key in the repo's and the
+workspace's `.mcp.json` to `webflow-<slug>`, add the server line to
+`AGENTS.md` › Project facts, and sign in once with `/mcp`.
 
 ## Auditing before launch
 
@@ -284,3 +316,17 @@ Build → paste `dist/index.js` inline into Site footer, CSS inline (a
 `<style>` block) into canvas Embed 2a in place of the link → remove Embed
 2b, the loader and external tags → publish → zip `src/` for the client →
 archive repo.
+
+## Licence
+
+wf-template is free for anyone to use, change, share and sell, for client
+work or anything else, with no attribution required: MIT No Attribution
+(`LICENSE`). It applies to every version of this repo, including those
+released before the licence was added.
+
+It began as a copy of Finsweet's developer-starter (ISC). That notice and
+the licences of the bundled Phosphor icons and Geist font are in
+`THIRD-PARTY-NOTICES.md`; keep that file in repos made from the template.
+`pnpm new-project` removes `LICENSE` from a client repo and marks its
+`package.json` `UNLICENSED`: the client's own code is not released under
+MIT-0.

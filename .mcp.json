@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "webflow": {
+    "webflow-pomp-c": {
       "type": "http",
       "url": "https://mcp.webflow.com/mcp"
     }
