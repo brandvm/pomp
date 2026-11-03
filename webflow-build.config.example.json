@@ -1,8 +1,32 @@
 {
   "prototypeUrl": "http://127.0.0.1:5173",
   "stagingUrl": "https://<slug>.webflow.io",
+  "liveUrl": "https://www.<domain>",
   "repoDir": ".",
   "bundlePattern": "<org>\\.github\\.io/<repo>/(index\\.js|styles\\.css)",
-  "widths": [[1440, 900], [820, 1180], [390, 844]],
-  "pages": ["/"]
+  "widths": [[1440, 900], [820, 1180], [667, 375], [390, 844]],
+  "pages": ["/"],
+  "seo": {
+    "noindexOk": ["^/design/"],
+    "noSchemaOk": ["^/(privacy-policy|terms|404)$"],
+    "maxPages": 500
+  },
+  "overflow": {
+    "widths": [2560, 1920, 1440, 1366, 1280, 1024, 992, 820, 768, 600, 480, 390, 360],
+    "ignore": [".marquee", "[data-overflow-ok]"],
+    "tolerance": 1
+  },
+  "redirects": {
+    "oldUrl": "https://www.<domain>",
+    "file": "docs/seo/redirects.csv"
+  },
+  "parity": {
+    "oldAssets": {
+      "<old-host>/.+\\.css(\\?|$)": "styles.css",
+      "<old-host>/.+\\.js(\\?|$)": "index.js",
+      "<library-cdn>/<library>\\.min\\.js": ""
+    },
+    "ignore": "",
+    "settle": 3000
+  }
 }

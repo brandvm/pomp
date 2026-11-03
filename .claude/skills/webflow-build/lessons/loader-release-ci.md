@@ -24,6 +24,161 @@ refer to the project the lesson came from; Status is that project's.
 
 <!-- Add new entries here, newest first. -->
 
+### 2026-10-13 · Local Lighthouse adds a second to some hosts on some networks
+- Area: ci, perf
+- Symptom: every local Lighthouse run showed the staging stylesheet and
+  Webflow's jQuery taking ~1.1 s each, which put mobile at 82 for a page
+  that scored 96 elsewhere. `curl` and Playwright fetched the same files
+  in 70 ms.
+- Cause: the newer DNS and connection path in the Chrome that Lighthouse
+  launches, on that network; not the site.
+- Fix: run local Lighthouse with
+  `--chrome-flags="--headless=new --disable-features=HappyEyeballsV3,AsyncDns"`
+  (`wf:perf` passes them from `WF_PERF_CHROME_FLAGS`), and check
+  the request list for a host that is slow only there before believing a
+  score. The keyless PageSpeed API quota is usually spent; the PageSpeed
+  website is the reference.
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-16 · Staging fetched its stylesheet twice before first paint
+- Area: loader, perf
+- Symptom: on `*.webflow.io`, `styles.css` was requested twice before
+  first paint (`?v=1` from Embed 2a, then `?v=<timestamp>` from 2b), the
+  second render-blocking; Lighthouse CLS on staging was ~0.18. PageSpeed
+  also flagged the fixed jsDelivr preconnect as unused on staging.
+- Cause: 2b cache-busted the staging sheet straight away, so a page that
+  already had the sheet parsed waited for a second copy.
+- Fix: on staging 2b keeps the 2a sheet and swaps in a cache-busted copy
+  through `setCSS` only after `load` (skipped when dev mode or a fallback
+  has taken the bundle elsewhere); the footer loader re-points the sheet
+  only when the bundle comes from another origin. The head code
+  preconnects to the bundle's own origin (Pages, jsDelivr or localhost)
+  instead of a fixed jsDelivr pair. CLS on staging 0.005.
+- Status: fixed in the template's loader.html, 0.6.0 (all three snippets
+  must be re-pasted into Webflow)
+- Found by: claude
+
+### 2026-09-11 · The Designer's custom-code preview isn't staging
+- Area: loader
+- Symptom: `?wfc-dev=1` on the Designer URL or the staging site does not
+  put the custom-code preview into dev mode; the preview loads the
+  production path.
+- Cause: the preview runs on `*.canvas.webflow.com`, a separate origin
+  with its own URL and localStorage, and the head code only treated
+  `*.webflow.io` as staging.
+- Fix: the head code treats `*.canvas.webflow.com` as staging too. Set
+  the flag on the frame's own URL or storage, or check on published
+  staging.
+- Status: fixed in the template's loader.html, 0.6.0 (head code must be
+  re-pasted)
+- Found by: codex
+
+### 2026-10-09 · Swapping the stylesheet href in 2b causes a full-page layout shift
+- Area: loader
+- Symptom: after a site was cut over to the template's loader, Lighthouse
+  CLS on desktop rose from ~0.001 to 0.2–0.5 (0.52, 0.28 and 0.22 on three
+  page types). The parity check missed it (see the parity entry below).
+- Cause: Embed 2b set `base.href` from the staging URL to the release URL,
+  and the footer loader set it again. Assigning a new href to a `<link>`
+  drops its rules until the new file arrives. Repo CSS scales the type, so
+  the page rendered at the wrong scale, then jumped. The 2b comment said
+  the href was "settled before first paint"; it isn't, the staging sheet
+  from 2a is already in flight.
+- Fix: `WFC.setCSS` in 2b loads the target next to the current sheet and
+  removes the old one on `load` (keeps it on `error`); the id moves at
+  once and an unchanged URL is a no-op. The footer loader calls it, with
+  a plain-href fallback for an older 2b. `tests/css-swap.spec.mjs` covers
+  it. CLS back to 0.001–0.003 on the same pages.
+- Status: fixed in the template's loader.html (2b and footer code must be
+  re-pasted into Webflow)
+- Found by: claude
+
+### 2026-10-09 · Setting RELEASE in loader.html breaks CI
+- Area: release, ci
+- Symptom: two projects hit it. On a new project, every push after the
+  first release failed CI with "loader.html must ship with
+  `var RELEASE = null;`", so staging stopped deploying (production was
+  unaffected; it is pinned to the tag). On a site adopting the template
+  while already live, the tests threw from the start, because a live site
+  always has a release set.
+- Cause: AGENTS.md said to keep `loader.html` "identical to what is
+  installed", so the release value was committed. The repo copy must keep
+  `null`; the browser tests enforce it. The installed version exists only
+  in the head code pasted into Webflow.
+- Fix: `loader.html` keeps `RELEASE = null`; the installed release is
+  recorded in AGENTS.md › Project facts and set only in the pasted
+  snippet. AGENTS.md › Snippets are not versioned and README › Release
+  now say "identical except RELEASE".
+- Status: fixed in the template's AGENTS.md and README
+- Found by: claude
+
+### 2026-10-09 · The staging link in Embed 2a costs production a render-blocking request and a second CSS download
+- Area: loader, perf
+- Symptom: on production pages of two sites, `styles.css` came from
+  github.io (staging) **and** jsDelivr (the release): 3 of 3 Chromium runs
+  fetched both, and Lighthouse lists the staging sheet as render-blocking
+  (~1.4 s on simulated slow 4G), although 2b swaps in the release sheet.
+- Cause: 2a is a static `<link>` to the staging sheet so the Designer
+  canvas can show repo CSS. The preload scanner requests it as soon as it
+  sees the Embed, and a stylesheet in the body blocks rendering of the
+  content after it until it has loaded, even once the swap has removed it.
+- Fix: not in the template yet. Proposed: the head code writes the release
+  `<link id="wfc-css">` itself when `RELEASE` is set and the page is not on
+  `*.webflow.io`; 2b then removes the 2a link (the canvas never runs 2b, so
+  it keeps showing staging). Needs a test that public pages never request
+  the staging sheet once a release is set. A per-project workaround that
+  worked: put the pinned release URL in 2a's static href, have 2b rewrite
+  only when the URL differs (staging, dev) and log an error when 2a's
+  `@x.y.z` ≠ `RELEASE`. Its cost: a release changes two strings, and the
+  canvas shows the release CSS. Hiding `body` until the CSS loads delays
+  LCP, so don't use it on a site where PageSpeed matters.
+- Status: fixed in the template's loader.html, 0.8.0 (piece 1 must be
+  re-pasted). Shipped fix: on a release domain piece 1 `document.write`s the
+  release `<link>` into `<head>` (parser-inserted, so it holds first paint
+  in every browser) and a MutationObserver re-points `#wfc-css` (2a) at the
+  same file as the parser inserts it — before 2b runs, so 2b's swap is a
+  no-op. A first version that only re-pointed 2a was live for an hour on
+  one site and regressed: once its href changes, 2a no longer holds the
+  parser, so pages painted before the repo CSS and re-laid out when the
+  type scale arrived (CLS 0.17 phone, 0.31 desktop). Chrome reports a
+  `<body>` stylesheet as `renderBlockingStatus: "non-blocking"` either
+  way, so test with paint timing: `tests/environment-switcher.spec.mjs`
+  delays the release sheet 1 s and requires first paint after it. The
+  look-ahead scanner may still request the 2a staging sheet; it no longer
+  holds the page. Re-pointing 2a removed the old jsDelivr fallback (a
+  failed swap kept the staging sheet), so the written link's `onerror`
+  puts 2a back on staging; a second test blocks jsDelivr.
+- Found by: claude
+
+### 2026-10-09 · A parity check on settled pages misses layout shifts
+- Area: ci
+- Symptom: after a loader change, a check comparing computed styles and
+  boxes between the old and new install passed 1:1, while Lighthouse CLS
+  had gone from ~0.001 to 0.2–0.5.
+- Cause: the check waits for the page to settle, so a transient state
+  (no stylesheet for a few hundred ms) is never seen.
+- Fix: after any change to the loader snippets or how CSS reaches the
+  page, also run Lighthouse (or PageSpeed) CLS on a few page types, before
+  and after, on the same host. Compare like with like (mobile/desktop,
+  same throttling).
+- Status: documented
+- Found by: claude
+
+### 2026-10-09 · Lighthouse and PageSpeed don't emulate prefers-reduced-motion
+- Area: ci
+- Symptom: after the page loader was skipped under
+  `prefers-reduced-motion: reduce`, Lighthouse and PageSpeed runs still
+  showed it, so the change could not be verified there.
+- Cause: Lighthouse and PageSpeed run with the default `no-preference`;
+  neither has a setting for the media feature.
+- Fix: measure reduced-motion behaviour separately (Playwright
+  `page.emulateMedia({ reducedMotion: 'reduce' })` or Chrome DevTools
+  Rendering › Emulate CSS media feature). Don't count a reduced-motion
+  change as a score improvement: the score reflects the full-motion path.
+- Status: documented
+- Found by: claude
+
 ### 2026-10-06 · Body Embed stylesheet: page paints unscaled, then jumps
 - Area: loader
 - Symptom: the designer saw the hero (and every page) flash. A filmstrip showed

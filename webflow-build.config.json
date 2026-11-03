@@ -1,11 +1,13 @@
 {
   "prototypeUrl": "http://127.0.0.1:5173",
   "stagingUrl": "https://pomp-c.webflow.io",
+  "liveUrl": "https://www.pompandcircumstancepr.com",
   "repoDir": ".",
   "bundlePattern": "brandvm\\.github\\.io/pomp/(index\\.js|styles\\.css)",
   "widths": [
     [1440, 900],
     [820, 1180],
+    [667, 375],
     [390, 844]
   ],
   "pages": ["/"]

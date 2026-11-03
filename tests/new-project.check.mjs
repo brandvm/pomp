@@ -9,7 +9,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const FILES = ['package.json', 'AGENTS.md', 'loader.html', 'docs/handoff/HANDOFF.md', 'scripts/new-project.mjs', '.wf-template.json', 'CONTRIBUTING.md', 'CHANGELOG.md'];
+const FILES = ['package.json', 'AGENTS.md', 'loader.html', 'docs/handoff/HANDOFF.md', 'scripts/new-project.mjs', '.wf-template.json', 'CONTRIBUTING.md', 'CHANGELOG.md', 'LICENSE', 'THIRD-PARTY-NOTICES.md', '.mcp.json'];
 
 function copy() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wf-new-project-'));
@@ -31,6 +31,7 @@ test('fills in every placeholder and writes the config', { skip }, () => {
   const read = (f) => fs.readFileSync(path.join(dir, f), 'utf8');
   assert.match(read('package.json'), /"name": "wf-acme"/);
   assert.doesNotMatch(read('package.json'), /"harvest"/);
+  assert.match(read('package.json'), /"license": "UNLICENSED"/);
   const agents = read('AGENTS.md');
   assert.doesNotMatch(agents, /<CLIENT>|<REPO>|<SITE_ID>|<SLUG>|<DOMAIN|<RELEASE/);
   assert.match(agents, /# Acme Homes — Webflow custom code/);
@@ -41,10 +42,14 @@ test('fills in every placeholder and writes the config', { skip }, () => {
   assert.match(loader, /var OWNER = "acme-org";/);
   assert.doesNotMatch(loader.replace(/<!--[\s\S]*?-->/g, ''), /REPO/);
   assert.doesNotMatch(read('docs/handoff/HANDOFF.md'), /<CLIENT>/);
+  assert.deepEqual(Object.keys(JSON.parse(read('.mcp.json')).mcpServers), ['webflow-acme-homes'], 'one MCP server name (and sign-in) per project');
+  assert.match(agents, /Webflow MCP server: `webflow-acme-homes`/);
   const cfg = JSON.parse(read('webflow-build.config.json'));
   assert.equal(cfg.stagingUrl, 'https://acme-homes.webflow.io');
   assert.ok(new RegExp(cfg.bundlePattern).test('https://acme-org.github.io/wf-acme/index.js'));
   assert.ok(!fs.existsSync(path.join(dir, 'CONTRIBUTING.md')) && !fs.existsSync(path.join(dir, 'CHANGELOG.md')), 'template-only files removed');
+  assert.ok(!fs.existsSync(path.join(dir, 'LICENSE')), 'MIT-0 licence not carried into the client repo');
+  assert.ok(fs.existsSync(path.join(dir, 'THIRD-PARTY-NOTICES.md')), 'third-party notices kept');
   const meta = JSON.parse(read('.wf-template.json'));
   assert.match(meta.version, /^\d+\.\d+\.\d+$/);
   assert.match(meta.created, /^\d{4}-\d{2}-\d{2}$/);
@@ -66,7 +71,7 @@ test('rejects a full URL as the slug', { skip }, () => {
 function copyIntoWorkspace() {
   const ws = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'wf-workspace-')), 'Acme');
   const dir = path.join(ws, 'wf-acme');
-  for (const f of [...FILES, '.mcp.json']) {
+  for (const f of FILES) {
     fs.mkdirSync(path.dirname(path.join(dir, f)), { recursive: true });
     fs.copyFileSync(path.join(root, f), path.join(dir, f));
   }
@@ -91,6 +96,9 @@ test('sets up the workspace around the repo', { skip }, () => {
   assert.equal(fs.readFileSync(path.join(ws, '.mcp.json'), 'utf8'), '{"keep":true}', 'existing files are kept');
   assert.ok(fs.existsSync(path.join(ws, '.claude/skills/webflow-build/SKILL.md')), 'skills reachable from the workspace');
   assert.ok(fs.existsSync(path.join(ws, 'prototype/package.json')), 'prototype copied');
+  const port = new URL(JSON.parse(fs.readFileSync(path.join(dir, 'webflow-build.config.json'), 'utf8')).prototypeUrl).port;
+  assert.match(port, /^5[2-9]\d\d$/, 'a per-project prototype port');
+  assert.match(fs.readFileSync(path.join(ws, 'prototype/package.json'), 'utf8'), new RegExp(`--port ${port} --strictPort`), 'prototype dev script uses the same port');
   assert.ok(fs.statSync(path.join(ws, 'Assets/figma')).isDirectory());
 });
 

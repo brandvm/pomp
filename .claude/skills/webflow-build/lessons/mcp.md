@@ -6,6 +6,547 @@ Harvested from client builds made from this template (`Scope:
 template-candidate` entries in their `GOTCHAS.md`). Module and file names
 refer to the project the lesson came from; Status is that project's.
 
+### 2026-10-29 · Collection List query writes: intermittent conflicts, one key at a time
+- Area: mcp
+- Symptom: `filters` (Switch `isOn`, Option `equals`) and `sort` writes on
+  fresh body-level Collection Lists failed with "[Conflict] The operation
+  could not be applied to the component map", the same in the Designer
+  for one Switch filter. `source`, classes, attributes and the item's
+  bindings took. Some writes reported "applied" and read back `[]`. Over
+  one day the same writes failed on one page and took on another, failed
+  site-wide in the afternoon (even `sort` on a new list on a blank page,
+  before and after a Designer reload), and then took again on rebuilt
+  lists. A list that refused once kept refusing later query writes.
+- Cause: unknown, Webflow-side and intermittent; having the page open in
+  the Designer made no difference.
+- Fix: write `source` first, then each of `sort`, `limit`, `filters` in
+  its own `set_settings` call (one key per call, never two lists in
+  parallel), and read each back; try filters last so a failure can't block
+  the rest. A list that refused once: rebuild it rather than retry. Make a
+  new list at body level, write source and sort, `move_element` the bound
+  children from the old item into the new one (bindings are kept), copy
+  the list and item classes and attributes, move the list into place and
+  remove the old one. If it keeps failing, leave the filter as a Designer
+  step and mark the unfiltered list on the page so it isn't missed. Value
+  shapes the API checks: Switch `{"fieldSlug", "operator": "isOn"}` (or
+  `isOff`; `equals` is rejected), Option `{"fieldSlug", "operator":
+  "equals", "value": "<option id>"}`, sort `{"fieldSlug", "direction":
+  "ascending"}`. See also "Collection List writes fail inside a slot or a
+  component".
+- Status: worked around
+- Found by: claude
+
+### 2026-10-29 · Collection List date filters: the value shape, and a filter and a sort refuse each other
+- Area: mcp
+- Symptom: upcoming and past event lists. A DateTime filter took only
+  `greaterThanOrEqual` / `lessThanOrEqual` and failed "requires a valid
+  DateFilterValue object" for `{"type":"now"}`, absolute dates and other
+  guesses. With the right shape, on six fresh lists, whichever of filter
+  and sort was written second failed with "[Conflict] … component map", in
+  either order and in one write; replacing a filter with a filter, or a
+  sort with a sort, took.
+- Cause: unknown, Webflow-side. The shape comes from the Designer API
+  docs.
+- Fix: the value is relative: `{"amount": 0, "unit": "days", "direction":
+  "past"}` (`unit` days/weeks/months/years; `amount: 0` is today, stored
+  as `direction: "past"`). Upcoming: end date `greaterThanOrEqual` amount
+  0; past: end date `lessThanOrEqual` amount 1 past (ended by yesterday,
+  so an event ending today is upcoming only). Write the filter through the
+  API and leave the sort as a Designer step.
+- Status: worked around (sort by hand)
+- Found by: claude
+
+### 2026-10-29 · Removing a Collection List's Empty State deletes the whole list
+- Area: mcp
+- Symptom: `remove_element` on the Empty State (DynamoEmpty) of two lists
+  reported success; afterwards both lists, with their bound cards, were
+  gone from the page. An Empty State left in place showed a grey 10px
+  frame around a custom empty card.
+- Cause: the API removes the Empty State's parent Collection List with it.
+  The grey frame is webflow.css: `.w-dyn-empty { background-color: #ddd;
+  padding: 10px }`.
+- Fix: never remove an Empty State through the API. Give it a class with
+  `display: none`, or one with padding 0 and a transparent background
+  around the custom empty content.
+- Status: worked around
+- Found by: claude
+
+### 2026-10-29 · Images without srcset: late variants, stale props and plain Images
+- Area: mcp, perf
+- Symptom: images uploaded through the assets API had size 0 and no
+  variants, so heroes published without `srcset`; about 40 minutes later
+  all of them had variants (500–2000px) and the component image props
+  published with `srcset` on the next publish. A plain Image element set
+  while its asset had no variants kept publishing without `srcset`, also
+  after `set_image_asset` with the same asset. Separately, image props on
+  two components published full size without `srcset` (~1.2 MB of
+  oversized images on mobile) although the assets had variants and the
+  props were set after them.
+- Cause: Webflow makes the variants asynchronously. A component image prop
+  resolves them at publish; a plain Image seems to keep what it had when
+  it was set. The stale props: unknown.
+- Fix: check `get_asset` for variants before asking a person to re-pick an
+  image (`size` stays 0 even with variants); wait and republish first. A
+  plain Image set too early needs a re-pick in the Designer, or set it
+  after the variants exist. For a prop without `srcset`, set it to `null`,
+  then to the asset id again (`set_component_instance_prop_values`), and
+  publish. Check the published `<img>` for `srcset` after setting any
+  image. See "API-uploaded assets stay size 0 and don't render in
+  components".
+- Status: worked around
+- Found by: claude
+
+### 2026-10-29 · WHTML-imported Images and blocks refuse attributes; build them instead
+- Area: mcp
+- Symptom: `set_attributes` (`data-*`, `loading`) on imported Images,
+  after `set_image_asset` in the same batch, reported success and stored
+  nothing; retried alone, it failed with "[Conflict] … component map". On
+  an imported section, `set_attributes` and `set_settings` key
+  `attributes` both read back `[]`. The same writes on other elements
+  took.
+- Cause: unknown, on elements made by the WHTML importer.
+- Fix: build elements that need attributes with `data_element_builder`:
+  Images (type Image, `set_image_asset`, then `set_attributes`) took
+  `data-*` and `loading` at once; for a block, wrap it in a DivBlock made
+  with the builder and put the attribute there. Read attributes back after
+  every write; "success" is not proof.
+- Status: worked around
+- Found by: claude
+
+### 2026-10-29 · Imported form controls: build forms as DOM elements
+- Area: mcp
+- Symptom: a filter toolbar imported with `data_whtml_builder`: every
+  label published `for=""` (clicking a pill didn't check its radio), the
+  `checked` on the default radio was dropped, labels were bold, a
+  read-only input was grey, and the form wrapper shrank to 200px in a
+  centred column. The page also loaded Cloudflare Turnstile.
+- Cause: the importer drops `for` and `checked`; webflow.css gives `label`
+  `font-weight: bold; margin-bottom: 5px` and `.w-input[readonly]` a grey
+  background that outranks one class; the class-less `.w-form` wrapper
+  shrinks in a flex column and keeps `margin-bottom: 15px`. A Webflow form
+  block on a page loads Turnstile.
+- Fix: for search and filter controls that never submit to Webflow, skip
+  the form block: build them with `data_element_builder` type DOM (tags
+  form, label, input, select, option, button; attributes and option text
+  through `set_settings` `attributes` and `text`). They publish exactly as
+  written, keep Finsweet working and don't load Turnstile. With a form
+  block: `set_attributes` `for` and `checked` after the import (give the
+  inputs unique ids), reset `label` weight and margin on the class, a
+  combo for the read-only background, and a class with a width on the
+  form wrapper.
+- Status: worked around
+- Found by: claude
+
+### 2026-10-29 · Section ids refused after import; import the id instead
+- Area: mcp
+- Symptom: on a page made with `duplicateOf`, three sections imported
+  without ids then refused every id write: `set_dom_id` and `set_settings`
+  key `domId` failed with "[Conflict] … component map", `set_attributes`
+  `id` with "An internal error occurred". Other writes on the page took.
+- Cause: unknown, Webflow-side.
+- Fix: import ids with the section in the first place. To add one later,
+  import an empty `<section class="…" id="…">` next to the built one (the
+  importer keeps these ids), `move_element` the content into it and
+  remove the id-less section. Read ids back with `query_elements`
+  (`attribute_name: "id"`).
+- Status: worked around
+- Found by: claude
+
+### 2026-10-29 · A list inside a component's rich-text prop can't get text through the API
+- Area: mcp
+- Symptom: an accordion answer (a rich-text prop) needed a bulleted list.
+  `data_whtml_builder` into the prop failed; `data_element_builder` with
+  `BY_CUSTOM_TAG` `ul` made a List with three default items whose `li`
+  children took no `set_text`; `query_elements` can't see inside the
+  prop.
+- Cause: text inside a rich-text prop is reachable only as the whole prop
+  value (`rich_text_inner_text`: plain paragraphs and line breaks).
+- Fix: set the paragraphs with `rich_text_inner_text` (a blank line
+  between items), then a person selects them in the Designer and clicks
+  the bulleted-list button. Setting the prop value again also clears a
+  half-built list.
+- Status: worked around
+- Found by: claude
+
+### 2026-10-29 · calc() with variables: one computed variable with a value per mode
+- Area: mcp
+- Symptom: many class values like `calc(<section padding> * -1)` or
+  `calc(<nav height> + 3.5em)`, which the style API collapses to the first
+  variable (see "Style values containing `var()` collapse to one
+  variable"). `create_size_variable` and `update_size_variable` with
+  `custom_value` failed with "An internal error occurred", even for
+  `calc(100vh - 60px)`.
+- Cause: the style API keeps one variable per value, and `custom_value`
+  is still refused through the MCP (AGENTS.md › Webflow MCP limits: the
+  variables JSON import is the other route).
+- Fix: one Size variable per calc, in the same collection as its inputs,
+  with static values: Base plus its own value in every breakpoint mode,
+  each worked out from the input's value in that mode. Negative values are
+  accepted. Bind the class property with `variable_as_value`; the
+  published CSS declares the variable per breakpoint, so it follows the
+  breakpoint. The values are copies, not formulas: name each variable
+  after its input (`Calc/Nav Height + 3.5em`) and update it when the input
+  changes.
+- Status: worked around
+- Found by: claude
+
+### 2026-10-29 · Gradients with variables: literal colours, and check every variant
+- Area: mcp
+- Symptom: `linear-gradient()` values using colour variables. A gradient
+  with `var()` keeps only its first variable, and a Color variable can't
+  hold a gradient.
+- Cause: the style API collapses any value containing a variable to a
+  binding; Color variables are single colours.
+- Fix: `update_style` `background-image` with the variables' literal
+  values (for a fade to the page colour, the colour that mode resolves to
+  in that section). The gradients don't follow a palette change, so note
+  them or bind the stops in the Designer. Setting it on a class a
+  component's variants share reaches every variant that doesn't override
+  it: check each with `get_variant_styles` and set `background-image:
+  none` with `set_variant_styles` where needed.
+- Status: worked around
+- Found by: claude
+
+### 2026-10-29 · Fonts through the API: the upload, the second host, and the licence
+- Area: mcp, perf
+- Symptom: fonts left for the Designer because Google Fonts can't be added
+  through the API; once uploaded through the API, the published CSS loaded
+  them (and the starter's font) from
+  `webflow-files-prod.global.ssl.fastly.net`, although `create_font`
+  returned a `hostedUrl` on `cdn.prod.website-files.com`.
+- Cause: the font API stores new fonts on that host, as it does replaced
+  ones (see "Replacing a font through the API moves it to another host");
+  the `hostedUrl` in the result is not the URL that publishes.
+- Fix: download the files and upload them as custom fonts: `create_font`
+  (family name exactly as the typography family variables name it; `axes`
+  for a variable font, which publishes as `font-weight: 300 900`), then
+  POST the returned `upload.fields` plus `file` as multipart to
+  `upload.url` (201 = done), publish, and check the `@font-face` in the
+  published CSS and `document.fonts`. Add a `preconnect` (crossorigin) to
+  the fastly host in loader piece 1, not a preload. Licence first: OFL
+  fonts may be subset; some foundry licences (e.g. Fontshare's FFL) forbid
+  subsetting and format conversion, so upload their own woff2 as is. Keep
+  the originals and licence texts with the project's assets.
+- Status: worked around
+- Found by: claude
+
+### 2026-10-29 · Bound CMS dates have one format; links to the current item are Designer-only
+- Area: mcp
+- Symptom: every date binding (text, DOM span, custom attribute) published
+  as "October 7, 2025" with no time; card links set through the API
+  published `href="detail_<collection>"` or the collection's list page.
+- Cause: the binding has no format field, and the link setting has no
+  "current item" target.
+- Fix: date formats and links to the current item are Designer steps. A
+  script that reads a bound date must parse that format and treat it as
+  wall time in the site's time zone: Webflow can't publish a date with its
+  offset.
+- Status: open (Designer steps)
+- Found by: claude
+
+### 2026-10-29 · A plain element in an empty slot without a person
+- Area: mcp
+- Symptom: a static page and a CMS template were empty bodies inside a
+  page-shell component; the API can't build into an empty slot (see
+  "Slots: the MCP can work beside a plain element, never start one"), and
+  a CMS template can't be made with `duplicateOf`. A page made with
+  `duplicateOf` published with the source page's H1 and content inside
+  `main`, although `get_all_elements` showed the slot empty.
+- Cause: `insert_in_slot` takes component instances only; a duplicate
+  copies the slot content too, and the page tree read doesn't descend into
+  slots ("Filled slots read back empty").
+- Fix: make a blank helper component whose root is a plain div, put it in
+  the slot with `data_component_builder` `insert_in_slot`, then
+  `unlink_component_instance`: a plain div is left in the slot, and the
+  builders work `before` it. Remove the div when the page is built, and
+  the helper component when no page needs it. On a duplicated page, find
+  the copied content with `query_elements` and remove it, or use it as
+  the anchor.
+- Status: worked around
+- Found by: claude
+
+### 2026-10-28 · Component prop bindings: what binds where
+- Area: mcp
+- Symptom: building hero, statement and fact-bar components: (1) binding
+  an attribute *name* to a prop failed on a Link and on a Block root;
+  (2) `text` was "not applicable" on the text Spans the importer makes
+  from `<span>`; (3) `image` was not a setting key on an Image; (4) an
+  image prop has no default, so the instance showed no image.
+- Cause: name bindings exist only on DOM elements; importer Spans have no
+  text setting; the Image's key is `assetId`; image props take no default.
+- Fix: (1) a DOM `a` takes bound attribute names and values; a Block or
+  Link keeps static attribute names, and their values bind. Replacing a
+  Link's attribute list drops its href: set it again with `set_settings`
+  key `link`. (2) a DOM `span` has a bindable `text`. (3) `set_settings`
+  key `assetId` with a prop binding. (4) set the instance's image prop
+  with `type: "string"` and the asset id. See "Component props: what the
+  MCP can and can't wire".
+- Status: worked around
+- Found by: claude
+
+### 2026-10-28 · Large element batches time out half-applied; a new Rich Text has sample content
+- Area: mcp
+- Symptom: one `data_element_tool` call with 41 actions returned "The
+  operation timed out"; reading back showed the first 25 applied and the
+  rest not. Every `RichText` made with the element builder came with
+  Webflow's sample content (headings 1–6, lists, a block quote).
+- Cause: the call has a time limit and applies actions in order without
+  rolling back. The builder's Rich Text is the Designer's default element.
+- Fix: keep batches to about 20 actions; after a timeout, read back
+  before sending the rest. Bind a new Rich Text to a rich-text prop at
+  once (the prop's text replaces the sample), or remove the sample
+  children.
+- Status: worked around
+- Found by: claude
+
+### 2026-10-28 · A breakpoint mode without its own value reads back as Base's
+- Area: mcp
+- Symptom: after two role variables were changed in Base only, staging
+  published the new value at every breakpoint, while the prototype
+  snapshot still listed the old per-mode values; check:drift reported the
+  difference.
+- Cause: a mode never given its own value resolves to Base, and
+  `get_variables` with all modes returns that resolved value, so a
+  snapshot written per mode looks like an override that isn't one.
+- Fix: rewrite the snapshot from a fresh `get_variables` read (all modes)
+  after each batch, instead of patching only the changed modes.
+- Status: worked around
+- Found by: claude
+
+### 2026-10-28 · Style variable ids need their `variable-` prefix
+- Area: mcp
+- Symptom: `create_style` with `variable_as_value` failed with "An
+  internal error occurred" for every action in the batch.
+- Cause: the ids were passed without the `variable-` prefix that
+  `query_variables` returns; the style tool needs the full id and says
+  nothing useful.
+- Fix: pass ids exactly as `query_variables` returns them
+  (`variable-<uuid>`).
+- Status: worked around
+- Found by: claude
+
+### 2026-10-28 · The WHTML importer drops a plain space between inline elements
+- Area: mcp
+- Symptom: `<span>Text.</span> <a>A link</a>` published as "Text.A link".
+- Cause: the importer treats a whitespace-only text node between two
+  inline elements as formatting and removes it (like the trimmed space
+  before `<br>`).
+- Fix: `&nbsp;` between the elements before importing, or the space inside
+  one of them.
+- Status: worked around
+- Found by: claude
+
+### 2026-10-28 · WHTML importer: images, icon classes and variant classes
+- Area: mcp
+- Symptom: importing style guide previews: (1) every `<img>` came in
+  without its asset ("not found in the asset library") whether `src` was
+  the prototype path, the asset's hosted URL or its file name; alt text
+  was kept. (2) `<i class="icon-glyph ph ph-arrow-left">` created empty
+  combo classes `ph` and `ph-arrow-left`. (3) `w-variant-…` tokens copied
+  from published HTML, and repo-CSS-only classes, would be created the
+  same way.
+- Cause: the importer doesn't match images by URL or name, and turns
+  every unknown class token into a new class.
+- Fix: (1) `set_image_asset` on each Image after the import (they come
+  back from `query_elements` type Image in document order); Webflow takes
+  `width`/`height` from the asset. (2) Import icons with their Webflow
+  class only, then `set_attributes` `class="<class> ph ph-<name>"` on the
+  DOM `<i>`; remove stray combos with `remove_style`, deepest first.
+  (3) Strip `w-variant-*` and repo-only tokens, and check every token
+  against the site's classes, before importing.
+- Status: worked around
+- Found by: claude
+
+### 2026-10-28 · Component variant styles work through the variants tool
+- Area: mcp
+- Symptom: a plan said styles on a component variant need the Designer
+  ("the style API has no variant scope").
+- Cause: the style tool has no variant scope, but the component variants
+  tool does.
+- Fix: `set_variant_styles` with `variant_id`, `style_name` and optional
+  `pseudo` (hover), variable bindings included; read back with
+  `get_variant_styles`. Works when the variant's element has a single
+  class (see "Variant overrides on a combo element never apply").
+- Status: worked around
+- Found by: claude
+
+### 2026-10-28 · The style guide page holds the starter's page inside its slot
+- Area: mcp
+- Symptom: `get_all_elements` on the style guide page showed the page
+  shell with an empty main slot; `query_elements` found the starter's
+  whole style guide (about 1,000 elements) in it.
+- Cause: the page tree read doesn't descend into slot content ("Filled
+  slots read back empty"); scoped queries inside the slot return nothing
+  either.
+- Fix: replace the starter's sections one by one: import the new section
+  `before` the old one (a plain element in the slot is a valid anchor),
+  remove the old one, re-point its sidebar link (`set_link`, linkType
+  element). Keep the starter's instance-based rows. Compare the published
+  page's class lists before removing anything, so no class loses its only
+  specimen.
+- Status: documented
+- Found by: claude
+
+### 2026-10-28 · Rich text child styles through the MCP
+- Area: mcp
+- Symptom: `query_styles` for the rich-text class returned only the class,
+  not its nested `h2` / `blockquote` styles.
+- Cause: nested rich-text styles are tag styles named `h2`, `blockquote`
+  and so on; name search doesn't link them to their parent.
+- Fix: find them by property (`query_styles` with `properties`), then
+  update with `style_name: "h2", parent_style_names: ["<Rich text
+  class>"]`; the result's `selector` confirms `.<class> h2`.
+- Status: documented
+- Found by: claude
+
+### 2026-10-28 · Turn a scroll interaction off at one breakpoint through the MCP
+- Area: mcp
+- Symptom: two scroll interactions (a pin and a hero scroll) needed to be
+  off on mobile only; the plan assumed a Designer-only change.
+- Cause: none; this records the method that worked.
+- Fix: `data_interactions_tool › update_interaction` with
+  `conditionalPlayback: [{type: "breakpoint", breakpoints: ["tiny"],
+  behavior: "dont-animate"}]`. "dont-animate" leaves elements at their CSS
+  state; "skip-to-end" applies the end values (a header fading out stays
+  at opacity 0). Undo a pin in the styles at the same breakpoint (height
+  auto, not sticky). `conditionalPlayback: null` clears it.
+- Status: documented
+- Found by: claude
+
+### 2026-10-27 · The element builder silently drops a link and `li` text
+- Area: mcp
+- Symptom: a banner's policy link published as `href="#"` and list items
+  published empty, although each build call reported success.
+- Cause: `data_element_builder` ignored `set_link` on a new TextLink and
+  `set_text` on a `BY_CUSTOM_TAG` `li`; `set_text` on a `span` in the same
+  call stuck.
+- Fix: set links afterwards with `data_element_tool` › `set_link`; put
+  list text in a `span` inside each `li`. Check the published HTML for
+  hrefs and text after any build, not only the tool's success message.
+- Status: worked around
+- Found by: human
+
+### 2026-10-26 · The style API refuses custom properties and fails the whole update
+- Area: mcp
+- Symptom: `update_style` with a `--name` custom property next to `color`
+  and `height` returned `Invalid style property --name`
+  (OPERATION_FAILED), and none of the other properties were written.
+- Cause: the style API only takes known CSS properties, and one bad
+  property fails the whole action.
+- Fix: keep custom properties out of style calls (a `designer-cant` rule
+  in repo CSS, or a Webflow variable); retry the rest without it and read
+  the style back.
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-26 · All client repos shared one Webflow MCP sign-in
+- Area: mcp
+- Symptom: signing in to the Webflow MCP for one client's repo replaced
+  the sign-in of another; the MCP then reached the wrong client's site.
+- Cause: every repo's `.mcp.json` named the server `webflow`, and Claude
+  Code keeps one OAuth sign-in per server name on the machine.
+- Fix: `pnpm new-project` names it `webflow-<slug>` (template 0.7.2), so
+  each repo keeps its own sign-in, scoped to its site at the consent
+  screen; AGENTS.md › Webflow MCP connection says to check the site ID
+  before the first write. The token stays on the machine, never in the
+  repo.
+- Status: fixed in wf-template 0.7.2
+- Found by: human
+### 2026-10-20 · Replacing a font through the API moves it to another host
+- Area: mcp, perf
+- Symptom: after `replace_font_file` (subset fonts, 345 → 89 KB), the
+  published CSS loaded the fonts from
+  `webflow-files-prod.global.ssl.fastly.net` instead of
+  `cdn.prod.website-files.com`: one more connection before first paint.
+  Preloading the font from there made Lighthouse mobile worse (93 → 82):
+  a preloaded font always starts before the paint, so it always counts.
+- Cause: that is where the font API stores files; Designer uploads go to
+  the asset CDN the page already uses.
+- Fix: upload font files in the Designer (Site settings → Fonts) and point
+  the typography variables at them; if the API is the only way, add a
+  `preconnect` (crossorigin) to the font host, not a font preload. Keep
+  the original files for rollback. A Latin subset (`pyftsubset`, both
+  variable axes kept, default features + `tnum`, `case`) rendered the same
+  on 5 pages × 2 widths.
+- Status: documented
+- Found by: claude
+
+### 2026-10-20 · The MCP can't prove a CMS field is unused
+- Area: mcp
+- Symptom: a field-usage audit from Designer settings alone listed FAQ
+  reference fields, multi-reference list sources and template fields as
+  unused, though the live pages use them.
+- Cause: `get_settings` returns conditional visibility as just
+  `"conditional"`, an "equals current item" filter as an empty filter, and
+  a multi-reference list source as the target collection only; bindings
+  inside component definitions aren't returned, and children of a
+  component's slots have no element id. Parallel scanners also hit 429s.
+- Fix: count a field unused only if no binding, list filter/sort,
+  component prop, page setting or custom-code token reads it **and** its
+  values are absent from the item's own live page; check reference fields
+  in reverse (are the referenced items the ones shown?).
+- Status: documented
+- Found by: claude
+
+### 2026-10-09 · Upload a local file as an asset without a public URL
+- Area: mcp
+- Symptom: `asset_tool › upload_image_by_url` only takes a public URL, so a
+  locally optimised image or video seemed to need a commit/push or a manual
+  upload.
+- Cause: the Designer-side tool fetches remotely; the Data API route is
+  not obvious.
+- Fix: `data_assets_tool › create_asset` with the file name and the **MD5
+  hex** of the bytes returns `uploadUrl` + `uploadDetails`; POST them as
+  multipart form fields with curl (`-F key=… -F Policy=… -F
+  X-Amz-Signature=… -F Content-Type=… -F "file=@path;type=…"`), expect
+  201. The file is on `cdn.prod.website-files.com` at once and answers byte
+  ranges (206), so MP4s work in Safari. Then set it: an Image element via
+  `set_image_asset`, a component Image prop via
+  `set_component_instance_prop_values` with `type: "string"` and the asset
+  id. An instance showing `hasOverride: false` uses the component default —
+  override that instance rather than changing the default, which other
+  instances inherit. Caution: on another project, uploads made this way
+  stayed at size 0 with no variants and components kept showing their
+  default image (see "API-uploaded assets stay size 0 and don't render in
+  components"). After uploading, check `get_asset` size and variants and
+  look at the published page before relying on it.
+- Status: worked around
+- Found by: claude
+
+### 2026-10-09 · `set_attributes` on Image elements: `loading` works, `crossorigin` and `sizes` fail
+- Area: mcp
+- Symptom: `crossorigin` on an Image element failed with an internal error
+  (twice, Designer connected); Image settings expose no attributes key.
+  On another site (2026-10-20), `sizes` failed the same way, but
+  `loading=lazy` / `eager` worked on Image elements on a page, inside a
+  component definition (`scope_component_id`) and inside a CMS list: the
+  published `<img>` carries one `loading`, the attribute replacing
+  Webflow's own. The MCP's settings have no Load option, so this is the
+  way to set it.
+- Cause: unknown; some attribute names are reserved on Image elements.
+- Fix: the same call works on DOM elements (`video` `poster`, `source`
+  `src`/`type`/`media`), on Links (`aria-label`, also inside component
+  definitions with `scope_component_id`), on form labels (`for` — Webflow
+  emits `for=""` by default, and the attribute replaces it) and on DOM
+  `button`s. For an Image, add the attribute in the Designer (manual
+  step). CMS-bound attribute values (e.g. `aria-label` = item title on a
+  card link) go through `set_settings` › `attributes` with `value_binding`
+  — it replaces the whole list, so read the existing attributes first.
+- Status: worked around
+- Found by: claude
+
+### 2026-10-09 · `publish_site` wants custom domain IDs, and counts toward the 1/min limit
+- Area: mcp
+- Symptom: `customDomains: ["www.example.com"]` → 400 "valid custom domain
+  ID"; a retry straight after → 429 "at most once per minute".
+- Cause: the parameter takes the domain IDs from `get_site` ›
+  `customDomains[].id`, not hostnames; staging and production publishes
+  share the per-site limit.
+- Fix: read the IDs once (`get_site`); wait out the limit with a timed
+  loop. Staging-only = `publishToWebflowSubdomain: true, customDomains: []`.
+- Status: worked around
+- Found by: claude
+
 ### 2026-10-02 · Only one collection can take breakpoint auto-modes
 - Area: mcp
 - Symptom: `create_variable_mode` with `breakpoint_id` worked for Typography
@@ -430,4 +971,591 @@ refer to the project the lesson came from; Status is that project's.
   published webflow.io page (computed styles in the browser) before
   changing anything else because of a snapshot.
 - Status: open
+- Found by: claude
+
+### 2026-10-09 · WHTML importer turns inline styles into `inline-div-N` combos
+- Area: mcp
+- Symptom: importing style guide swatches written as
+  `<div class="sg-swatch-color" style="background: var(--…)">` created 71
+  new combo classes on Sg Swatch Color, named `inline-div-1` … `-71`, each
+  holding the raw `background: var(--…)` string.
+- Cause: the importer converts every `style` attribute into a combo class
+  instead of keeping it as an attribute or an element style.
+- Fix: never put `style=""` in import markup. Pre-create a role combo per
+  value (e.g. `Is Bg Accent`, `background-color` bound to the variable
+  with `update_style`, which binds `var(--…)` correctly) and import with
+  classes only. If it happened: rename each `inline-div-N` to its role and
+  replace its value with the bound property.
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-09 · API-uploaded assets stay size 0 and don't render in components
+- Area: mcp
+- Symptom: images uploaded through the assets API (presigned S3 upload,
+  201 returned, the CDN served the right bytes) and set on component
+  image props showed the component's default image on the canvas and the
+  published page. `get_asset` reported size 0 and no variants.
+- Cause: Webflow never finished processing the upload, so the asset has
+  no variants and the Designer falls back to the default.
+- Fix: don't rely on API uploads for images used in the Designer. Replace
+  an existing asset in the Designer (Assets panel › Replace), which keeps
+  its id and every usage, or bring images in through a CMS image field
+  (next entry). Check `get_asset` size and variants after any upload.
+  Update 2026-10-14: on another project an API-uploaded image did render,
+  but with no `-p-500` … variants and no `srcset`, so phones downloaded
+  the full-size file (mobile Lighthouse lost two points). `set_attributes`
+  refuses `srcset` and `sizes` on an Image element ("An internal error
+  occurred") while accepting `loading` and `fetchpriority`. Pick the image
+  in the Designer (the variants are made then), or until then bind a file
+  sized for phones first.
+- Status: open
+- Found by: claude
+
+### 2026-10-09 · CMS image fields re-host an image from a public URL
+- Area: mcp
+- Symptom: images needed to get into the CMS (and rich-text bodies)
+  without the assets API (see the entry above).
+- Cause: —
+- Fix: set the image field (or the rich-text `<img src>`) to a public URL;
+  Webflow fetches the file and copies it to its own CDN. Host the files
+  temporarily (any public static host), write the items, read them back
+  and check every URL is now on the Webflow CDN, then delete the
+  temporary host. Alt text goes on the image field. Files over 4 MB are
+  dropped without an error (see "CMS images over 4 MB are dropped
+  silently"). An image already in the site's asset library is copied the
+  same way (new fileId and URL under the CMS path, re-encoded as .jpeg):
+  the asset library and CMS images are separate stores, so for CMS-only
+  images pass any public URL straight to the item, and don't upload them
+  as site assets first (they become unused duplicates).
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-09 · A box-shadow with a variable can't be set through the API
+- Area: mcp
+- Symptom: a focus ring's inner band `box-shadow: 0 0 0 2px var(--…)`
+  stored as a plain binding to the colour variable (no shadow), as the
+  "Style values containing `var()`" entry describes.
+- Cause: the style API replaces any value that contains a Webflow variable
+  with a binding to that variable.
+- Fix: set the shadow through the API with the variable's literal value
+  (`0 0 0 2px #1a1aff`), then rebind the colour to the variable in the
+  Designer (shadow colour › variable picker). List those rebinds as
+  manual steps.
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-13 · WHTML import with `css` creates the classes too
+- Area: mcp
+- Symptom: creating ~50 classes one `create_style` call at a time is slow,
+  and each needs longhand properties written out.
+- Cause: none; the importer has a second input that was not in use.
+- Fix: pass the rules as the WHTML builder's `css`. It creates every class
+  in that CSS (used in the markup or not) with longhand properties, hover
+  states, combos and the three max-width breakpoints. What it can't take:
+  `var()` and `calc()` with variables (use plain values, then bind
+  variables with `update_style`), `rgb(r g b / a)` (write `rgba()`), a
+  font stack (only the first family is kept, with a "missing font"
+  warning).
+  Classes are named by their slug (`sg-row-meta`): rename each one
+  afterwards (`rename_style`), which keeps the selector.
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-13 · The importer drops section ids and new-tab targets; an element without an id can't be a link target
+- Area: mcp
+- Symptom: a section imported with `id="forms"` came in with no id (twice),
+  `set_attributes` `id` failed with "An internal error occurred", and
+  `set_link` (type element) to that section failed the same way. Every
+  other section kept its id and linked fine.
+  Update 2026-10-14: on another project a section imported with an
+  ordinary id (`id="location"`) also published without it, and links
+  imported with `target="_blank"` opened in the same tab.
+- Cause: Webflow refuses `forms` as an element id (most likely because it
+  shadows `document.forms`); `set_link` needs the target to have an id.
+  The importer also drops some other ids for no visible reason, and turns
+  `target` and `rel` into custom attributes (next to a custom `href`)
+  instead of link settings.
+- Fix: use another id (`form-elements`). When `set_link` to an element
+  fails with an internal error, check the target's id first. After every
+  import, read back each section id and set missing ones with
+  `set_dom_id`; set new-tab links through `set_settings` key `link`
+  (`static_link` with `open_in_new_tab`) and remove the custom `href`,
+  `target` and `rel` attributes the importer left (for `rel`, see
+  "Unlinked instances lose conditional classes; link `rel` doesn't
+  publish").
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-13 · No reorder for variables: swap names and values instead
+- Area: mcp
+- Symptom: six weights added to a group appeared after the three older
+  ones (Regular, Medium, Bold, Thin, Extra Light…); the API can only
+  reorder collections.
+- Cause: a variable keeps the position it was created in.
+- Fix: treat the positions as slots. Rename the slots to temporary names,
+  give each slot the value and name it should have in order, and re-point
+  what referenced the old slots (aliases with `existing_variable_id`,
+  classes with `variable_as_value`) at the slot that now holds that value.
+  Updating an alias without `mode_id` also updates the modes that follow
+  the base. Read the published CSS afterwards. In the Designer the same
+  job is a drag.
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-13 · A collection's modes do nothing until a style sets them
+- Area: mcp
+- Symptom: the Layout variables had Tablet and Mobile values, but the
+  published CSS declared each variable once: nothing changed with the
+  breakpoint. The type roles did change.
+- Cause: only Typography Role had its mode set on the Body tag style at
+  each breakpoint; Layout had none (and no breakpoint auto-mode).
+- Fix: `set_style_variable_mode` on `body` with `breakpoint_id` medium,
+  small and tiny, once per responsive collection. Check with
+  `get_style_variable_modes`, then count the variable's declarations in
+  the published CSS (one per mode).
+- Status: fixed in the starter site
+- Found by: human
+
+### 2026-10-13 · The Current state can be written, but only on a new class
+- Area: mcp
+- Symptom: the style tool's states stop at hover, focus and the like; there
+  is no Current. A sidebar link had no way to show the section in view.
+- Cause: the style tool doesn't expose the state; the WHTML importer does.
+- Fix: import an element with `css` holding `.the-class.w--current { … }`:
+  it is stored as the Current state (published as `.the-class.w--current`),
+  at breakpoints too. The style tool can't read it back; check the
+  published CSS. For a class that **already exists** the importer does not
+  add to it: it creates `the-class-1`. So import the full class under a
+  new name with the state in it, move the elements over with `set_style`,
+  remove the old class, and rename the new one to the old name (the
+  selector follows the name).
+- Status: workaround confirmed
+- Found by: human + claude
+
+### 2026-10-13 · Sitemap exclusion is plan-gated; site SEO settings have no API
+- Area: mcp
+- Symptom: `update_page_sitemap_status` and `list_pages_sitemap_status`
+  answer 403 "Site plan doesn't support sitemap indexing controls" on a
+  site without a site plan, also after Auto-generate sitemap is turned on.
+  No tool reads or writes Site settings › SEO.
+- Cause: plan gate; the settings page is dashboard-only.
+- Fix: turn Auto-generate sitemap on in the dashboard (a person, or a
+  browser session with their OK). Keep internal pages out of search with
+  `noindex` in their head code until the plan exists, then exclude them
+  from the sitemap. Staging with subdomain indexing off serves
+  `Disallow: /` whatever the sitemap lists.
+- Status: open
+- Found by: claude
+
+### 2026-10-13 · Building nested components through the MCP: what works
+- Area: mcp
+- Symptom: a four-layer button (link › colour › size › content) with an
+  icon component inside had to be built without the Designer.
+- Cause: none; this records the route that worked.
+- Fix: build bottom-up. For each layer: build the wrapper element, insert
+  the inner component as an instance, `transform_element_to_component`,
+  `create_prop` the pass-through props, then bind the inner instance's
+  props with `set_component_instance_prop_values` (`type: "bindable"`,
+  `binding_source_type: "prop"`) inside `scope_component_id`. Inside a
+  new component the root keeps the component's id and its children count
+  up from it. Also confirmed: a custom `class` attribute bound to a text
+  prop (an icon font's classes); an attribute *name* bound to a prop;
+  `visibility` and a Link Block's `link` bound to props; a variant set on
+  an instance by passing the variant id as a string to its Variant prop.
+  Not possible: exposing a nested instance's Variant as a prop of the
+  outer component (a Designer step, "Link to new prop").
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-13 · `set_text` fails on imported blocks; a property can't be removed and set in one update
+- Area: mcp
+- Symptom: `set_text` on a div that the WHTML importer made from
+  `<div>text</div>` answered "This element doesn't support text".
+  Separately, an `update_style` that listed `padding-right` in both
+  `remove_properties` and `properties` left the property unset.
+- Cause: the element is a Block with a text child, not a Text Block; in
+  one update the removal is applied after the write.
+- Fix: write the text with `set_settings`, key `text`
+  (`static_text`), which also accepts a prop binding. Remove a property in
+  one call and set it in the next.
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-13 · Element builder: a DOM element's attributes can't be set at creation; `query_elements` style and text filters find nothing
+- Area: mcp
+- Symptom: creating a `DOM` element (a `source`) with `settings`
+  holding `attributes` failed: "Setting attributes is not applicable to
+  this element". Separately, `query_elements` with `element_filter.style`
+  ("Form Input") or `.text` returned no match for elements that exist on
+  the page.
+- Cause: not known; the builder accepts the `settings` list only for
+  some keys at creation.
+- Fix: create the element bare, then write `attributes` (with prop
+  bindings) through `set_settings` and visibility through
+  `set_visibility`. To find elements, filter by `attribute_name` /
+  `attribute_value` (a section's id) or `type`, or pass `element_id`
+  with `children_depth`, and walk down from there.
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-07 · Variant overrides on a combo element never apply
+- Area: mcp
+- Symptom: every instance of a section component set to its Reversed
+  variant rendered the base layout. The section published
+  `data-wf--<component>--variant="reversed"` and the CSS had
+  `.cta-grid:where(.w-variant-…)`, but no element carried that class.
+- Cause: `set_variant_styles` takes a `style_name` and resolves it to the
+  global class (`.cta-grid`). The element's own style is the combo at the
+  end of its chain (`.s-wrapper.is-wide.cta-grid`), and Webflow adds the
+  `w-variant-…` class only to elements whose own style has the override.
+  Button variants worked because their elements carry a single class.
+- Fix: set the override in the Designer with the element selected inside
+  the variant (a manual step). Through the API, give variant targets a
+  single class, and check the published class list after
+  `set_variant_styles`.
+- Status: open
+- Found by: claude
+
+### 2026-10-07 · CMS template: list sources, item roles and bound line breaks
+- Area: mcp
+- Symptom: building a CMS template page:
+  - `set_settings` source `{collectionId, fieldId}` on a nested Collection
+    List reported success but read back as `{collectionId}` only;
+  - a list filter can't exclude the current item (`slug` is "Unknown
+    field"), and system fields (`updated-on`) can't be bound;
+  - `role="row"` set on a Collection Item published as `role="listitem"`
+    (and the inner list as `role="list"`), breaking a table built from it;
+  - a plain-text field holding "\n", bound to a heading, publishes the
+    newline as a space, so the line break is lost.
+- Cause: MCP surface limits; Webflow writes list roles on every Collection
+  List (see designer.md, "Webflow rewrites roles and drops attributes on
+  publish").
+- Fix:
+  - on a template page the stored `{collectionId}` resolves to the item's
+    first multi-reference field to that collection, so a single such field
+    works without the Designer. With two fields to the same collection the
+    second list shows the first field's items until its source is set in
+    the Designer. See also "Nested Collection Lists: Show defaults to 5,
+    and the source shape";
+  - a multi-image field can't be a list source through the API (`{fieldId}`
+    is rejected; `{collectionId, fieldId}` stores the plain collection):
+    build the list on its parent collection, then switch the source and
+    bind the image in the Designer;
+  - "exclude current item" and date bindings are Designer steps;
+  - roles: put `data-aria-role` on the element and let the starter's
+    `aria-roles` module set it at runtime;
+  - line breaks: a combo with `white-space: pre-line` on the heading.
+- Status: open
+- Found by: claude
+
+### 2026-10-07 · Restructuring a component copy: List Items and prop ids
+- Area: mcp
+- Symptom: building a compact card from a `duplicate_component` copy,
+  inserting an instance failed with "List Item can only be placed in a
+  List" after the copy's `<li>`s were moved into a DOM `ul`.
+- Cause: Webflow List Items must sit in a Webflow List element, and the
+  element builder can't create one (no `List` type; a DOM `ul` doesn't
+  count). Separately, `duplicate_component` keeps the source's prop ids,
+  so bindings copy over 1:1 to the new component's instances.
+- Fix: reuse an existing List as the new container (move it, restyle it)
+  and turn items that must leave it into Blocks. Link props bound to the
+  current item still need Current <Item> set in the Designer on each new
+  instance.
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-07 · CMS images over 4 MB are dropped silently; updates need name and slug
+- Area: mcp
+- Symptom: creating a CMS item with an image field `url` succeeded, but
+  the field came back `null`. An update without `name` and `slug` failed
+  with "Missing fields".
+- Cause: Webflow's CMS image limit is 4 MB, and the API drops an image
+  over it instead of returning an error. Item updates validate the
+  required fields every time.
+- Fix: crop and convert images to WebP locally before writing them (under
+  4 MB, ideally far under), then set `{fileId, url}` or a public URL and
+  read the item back to confirm the image is there. Always send `name`
+  and `slug` in `fieldData` on updates.
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-07 · Month-only CMS dates display a month early
+- Area: mcp
+- Symptom: an item dated March 2026 rendered "February 2026".
+- Cause: the date was written as `YYYY-MM-01T00:00Z`. The site timezone
+  is behind UTC, so Webflow formats it as the last day of the previous
+  month.
+- Fix: store month-only dates as the 15th at 12:00 UTC
+  (`YYYY-MM-15T12:00:00Z`), which formats as the same month in every
+  timezone. Check existing items too: imported ones had the same bug.
+- Status: fixed (CMS data)
+- Found by: claude
+
+### 2026-10-08 · Page SEO through the API: what sticks and where
+- Area: mcp
+- Symptom: `update_page_settings` on a CMS template took dynamic SEO text
+  and published it per item. `jsonLdSchema` reported success but was
+  neither stored nor published. `openGraph.imageUrl` rejects anything but
+  an http URL.
+- Cause: MCP/API surface limits.
+- Fix: dynamic title and description use Webflow's token syntax, e.g.
+  `{{wf {"path":"name","type":"PlainText"\} }} | Site` (field slug as
+  path). JSON-LD and a CMS share image go in the page's head code with
+  `data_scripts_tool › set_page_freeform_code`; the same tokens work there
+  with HTML-escaped quotes
+  (`{{wf {&quot;path&quot;:&quot;image&quot;,&quot;type&quot;:&quot;ImageRef&quot;\} }}`)
+  and render per item. A `"` typed into a CMS field breaks JSON-LD built
+  from it (see designer.md, "CMS text bindings inside JSON-LD can break
+  the schema"). In the Designer, page settings › "+ Add field" inserts the
+  same token; type plain text around it. The page settings' own Schema
+  markup field on a CMS template can only be filled in the Designer (see
+  designer.md, "CMS text bindings inside JSON-LD can break the schema",
+  update 2026-10-16).
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-13 · Unlinked instances lose conditional classes; link `rel` doesn't publish
+- Area: mcp
+- Symptom: after `unlink_component_instance`, the former root and a child
+  kept an empty custom `class=""` attribute and lost their conditional
+  combos. Separately, a Link created with `static_link` `rel: "noopener"`
+  read back correctly through `get_settings` but published without `rel`.
+- Cause: conditional classes are a typed `class` attribute driven by a
+  prop (see designer.md, "Conditional classes are typed slugs, not linked
+  styles"), so there is nothing to resolve once the instance is unlinked.
+  The link setting's `rel` isn't written to the published markup.
+- Fix: after unlinking, apply the combos as real styles (`set_style` with
+  the class chain) and remove the empty `class` attribute. Set `rel` as a
+  custom attribute with `set_attributes`. Check the published HTML for
+  both.
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-13 · Three "manual" steps the API can do after all
+- Area: mcp
+- Symptom: a background image on a class, the loader's HTML Embeds and the
+  site's head and footer code were listed as Designer steps.
+- Cause: the routes are not obvious from the tool names.
+- Fix:
+  - background image: `update_style` with `background-image: url("<the
+    asset's cdn.prod.website-files.com URL>")` is stored and reads back;
+    position, size and repeat sent in the same call are kept (sent without
+    an image they are dropped silently, so read back);
+  - an HtmlEmbed's content is the setting `code` (`set_settings`, with
+    `scope_component_id` inside a component);
+  - Site settings › head and footer code is `set_site_freeform_code`.
+  Both read back. Check the starter site's Embed 2a still pointing at a
+  placeholder URL, and empty head and footer code, before comparing
+  staging with the prototype: nothing from the repo loads until they are
+  set.
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-14 · Collection List writes fail inside a slot or a component
+- Area: mcp
+- Symptom: `filters` writes on a Collection List inside a page-shell slot
+  either reported "applied" and read back empty, or failed with
+  "[Conflict] The operation could not be applied to the component map";
+  one combined write (filters + sort + limit) left the list refusing every
+  later write. Inside a component definition, `filters` failed with "No
+  source connected. Set a source first." although source and limit read
+  back correctly.
+- Cause: unconfirmed; the same writes on a list at body level work.
+- Fix: build the Collection List at body level, write `source`, then
+  `filters`, `sort`, `limit` and `pagination` in separate `set_settings`
+  calls (one key each), fill and bind the item, then `move_element` the
+  list into the slot (ids, settings and bindings are kept). In a component,
+  pin items with `queryMode: "curated"` and `curatedItemIds`, or set the
+  filter in the Designer. A filter "field = current item" or "exclude
+  current item" has no API value shape that works: Designer step. The
+  element builder can't bind a CMS field at creation ("not inside a CMS
+  context"): create, then bind. If a list refuses a query write once,
+  stop and hand it to the Designer; later writes won't take.
+  Update 2026-10-15: on another project one page's list refused sort in
+  the Designer as well; a script that sorted the items from a bound
+  `data-order` was written, and removed again the same day when a person
+  rebuilt the list with a native sort. Report a refused native setting
+  as a Designer step first, before writing workaround code.
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-14 · A section containing a Collection List can't become a component
+- Area: mcp
+- Symptom: `transform_element_to_component` on sections holding Collection
+  Lists was refused: "Components can't hold a live CMS binding".
+- Cause: platform limit. Unbinding the list first lets the conversion
+  through, but the list inside the component can't be bound again ("not
+  inside a CMS context").
+- Fix: only static sections become components. Sections with lists are
+  rebuilt per page or template, so a change to a card must be repeated on
+  every copy; list them in the handoff.
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-14 · An imported combo can publish as a bare class
+- Area: mcp
+- Symptom: tags on one page were 19.5px instead of 13px, and small
+  buttons, badges and icons elsewhere picked up a heading's font size.
+- Cause: the WHTML importer created `.post-card-title.is-small` while other
+  "Is Small" combos existed; Webflow published its properties as a bare
+  `.is-small { … }`, so every element with an `is-small` combo got them.
+  The style API still reported the selector as `.post-card-title.is-small`.
+- Fix: rename the imported combo (e.g. Is Compact Title) so it publishes
+  under its own class. After any import, grep the published CSS for bare
+  `.is-…` rules. Related: never hide a shared combo at a breakpoint to hide
+  one instance; give that instance its own combo.
+- Status: fixed in that project's Webflow styles
+- Found by: claude
+
+### 2026-10-15 · Keep a CMS template off the site with its toggle, not with draft
+- Area: mcp
+- Symptom: templates were set to draft through the API to keep their item
+  pages off the site.
+- Cause: `update_page_settings` exposes `draft` but not the template's
+  "Publish this Collection Template page" setting (the API reads it back
+  as `shouldPublish`, read-only).
+- Fix: switch "Publish this Collection Template page" off in the
+  template's page settings in the Designer (the template moves under
+  "Unpublished Collections"), then set `draft: false` through the API.
+  Draft is for static pages. Read back `shouldPublish: false`.
+- Status: fixed
+- Found by: human
+
+### 2026-10-15 · Bulk rich-text content: the Designer's CSV import, not the API
+- Area: mcp
+- Symptom: dozens of blog posts (close to 1 MB of HTML) from an old site
+  had to go into a collection; sending each body through
+  `create_collection_items` means pasting every article into a tool call.
+- Cause: the MCP only takes field data inline.
+- Fix: clean the export into a CSV whose headers match the field names
+  (a script: rewrite internal links, drop the body's own `<h1>`, strip
+  `<strong>` inside headings and zero-width joiners), then CMS › the
+  collection › Import in the Designer (a browser `file_upload` on the
+  dialog's file input). Columns map by name; take the offered backup.
+  What comes out: cover and body images are re-hosted on the site's CDN;
+  items arrive staged, not draft; a `<table>` becomes one run-together
+  paragraph (rebuild it as a list); image alt in rich text becomes
+  `__wf_reserved_inherit`; reference fields still need an API write after
+  the import.
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-16 · Nested Collection Lists: Show defaults to 5, and the source shape
+- Area: mcp
+- Symptom: a nested list of a multi-reference field published 5 items per
+  card where cards have up to 7. `get_settings` read `limit: 100` the
+  whole time.
+- Cause: a new nested list gets Show = 5 in the Designer, and the API's
+  read-back doesn't report it. Webflow allows up to 100 nested items, so
+  it isn't a platform cap.
+- Fix: `set_settings` key `limit` with an explicit value, then check the
+  published HTML. Don't add a second offset list to get past 5. The
+  source for a nested list is `{"collectionId": <referenced collection>,
+  "fieldId": <multi-reference field>}`; it binds although the read-back
+  shows only `collectionId` (the Designer shows the field). Reference
+  fields bind as `<refFieldId>:::<targetFieldId>`. A link to a referenced
+  item's page is a Designer step. A new collection appears in the
+  Designer's Pages panel only after a reload.
+- Status: fixed in that project
+- Found by: human
+
+### 2026-10-16 · Custom form messages: build inside the component, keep display off the class
+- Area: mcp
+- Symptom: replacing Webflow's default success and error text (grey and
+  pink boxes, centred, with padding), `data_whtml_builder` into a footer
+  component's Form Block failed with "Parent element … not found".
+- Cause: the WHTML importer only reaches elements of the page in context,
+  not component definitions.
+- Fix: `data_element_builder` with `scope_component_id` builds inside the
+  component (a DivBlock with Paragraph children, then `set_text`). Give the
+  success and error boxes a class that resets Webflow's padding,
+  background and centring but sets no `display`: webflow.js shows them with
+  an inline `display: block`, and a display on the class would show them
+  all the time. A message that replaces a form in a shrink-wrapped column
+  needs the form's width, or it jumps sideways. Check by forcing each
+  state, not by sending a form.
+- Status: done
+- Found by: claude
+
+### 2026-10-16 · Imported divs reject conditional visibility; a Collection List can't sit in a Link Block
+- Area: mcp
+- Symptom: on a CMS template, every Designer "Create conditional" on a div
+  that came from the WHTML importer failed with "[Conflict] The operation
+  could not be applied to the component map", on plain and reference
+  fields alike. Paragraphs from the same import, and divs made with
+  `data_element_builder`, took conditions fine. Separately, a nested
+  Collection List (a card's tags) was refused inside a whole-card Link
+  Block ("Collection List Wrapper can not be placed in a Link"), and
+  `set_text ""` on a paragraph after adding child spans wiped the spans.
+- Cause: unknown for the import (some state on imported Block elements;
+  see also "TextBlock builder makes an uneditable Block; WHTML drops fs-*
+  attributes"); the link rule is a Webflow constraint.
+- Fix: for every block that needs a condition, build a DivBlock with the
+  same classes before it (`data_element_builder`), `move_element` the
+  children in (bindings are kept), remove the imported div, then set the
+  condition in the Designer. Conditions on a reference's subfields work on
+  builder divs. A card that needs a nested list is a div card with an
+  absolute overlay Link Block (its `aria-label` bound to the item name).
+  Clear a paragraph's text before adding spans, never after. When
+  selecting in the Designer by script, check the breadcrumb before
+  applying a condition: the Navigator scrolls and a stale row selects the
+  wrong element.
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-09 · A variable create can come back suffixed; `rename_variable` works
+- Area: mcp
+- Symptom: in a batch of ~200 variable writes (all reported success, no
+  429 at 20 per call), `create_color_variable` "Group/Name 4" came back
+  named "Group/Name 4-9" (CSS `--…name-4-9`). No other live variable had
+  that name.
+- Cause: unconfirmed; most likely a deleted variable of the starter still
+  holds the name. Webflow suffixes silently and reports success.
+- Fix: check the `name` in every create result, and rename any suffixed
+  one: `rename_variable` now works through the MCP (ids and aliases kept;
+  the CSS name follows), so AGENTS.md › Webflow MCP limits "No variable
+  rename" is out of date. Also seen: a variable created in a collection
+  with modes takes its base value in every mode (no gaps on read-back), so
+  only the modes that differ need a write; an update without `mode_id`
+  writes Base only, so a value that must hold at every breakpoint is one
+  write per mode.
+- Status: workaround confirmed
+- Found by: claude
+
+### 2026-10-15 · Links in CMS copy: RichText companion fields; nested link styles are Designer-only
+- Area: mcp
+- Symptom: final copy added ~180 links inside running text, but most of it
+  sat in PlainText fields, which can't hold a link. Once the links were in,
+  they were invisible (global links are plain: inherited colour, no
+  underline), and the style API couldn't write a `.copy-class a` rule.
+- Cause: a field's type can't be changed, and a Paragraph can't bind to a
+  RichText field. Nested ("When nested inside of") styles aren't in the
+  API, and a bound RichText in the Designer has no child link to select.
+- Fix:
+  - add a RichText companion field per PlainText field ("Intro Rich"),
+    fill it (the linked version where the text has links, the plain text
+    wrapped in `<p>` otherwise), then in the template build a `RichText`
+    element next to the paragraph with the same classes
+    (`data_element_builder`), bind `richText` to the new field
+    (`set_settings`) and remove the paragraph. Keep the PlainText fields
+    filled: "is set" visibility conditions still read them. A RichText
+    built through the API starts with Webflow's sample content; the
+    binding replaces it on publish;
+  - static text with a link: rebuild the paragraph with the WHTML builder
+    (`<p>… <a href>…</a> …</p>`), then remove the custom `href` attribute
+    the importer adds to the link;
+  - link style: build a temporary **unbound** RichText with the same
+    classes through the API (its sample content has links), select a link
+    in it in the Designer, selector › All Links › "Nest selector inside
+    of", set the styles, then remove the temporary block: the nested
+    style stays. Point the sample link away from the current page, or the
+    selector picks up a Current state. Bind colours with the variable dot:
+    a colour typed into the Custom value editor published as
+    `color: @var_variable-…` (invalid CSS). After publishing, grep the
+    CSS for `@var_`. Plain Link elements in a paragraph can take a class
+    instead, which the API can write (`text-decoration-thickness`,
+    `text-underline-offset`, `text-decoration-color`);
+  - transitions: Effects › Transitions in the Designer; `transition` can't
+    be entered under Custom properties.
+- Status: workaround confirmed
 - Found by: claude

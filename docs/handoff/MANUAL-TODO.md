@@ -106,6 +106,45 @@ changed by the migration. Steps 4 onward need the user's go-ahead.
 - [ ] 12. Afterwards: archive hamounbv/pomp (read-only); leave its tags —
       rollback until then is re-pasting its old snippets.
 
+## Release stylesheet in the head (wf-template 0.8.0 loader fix)
+
+Found 2026-11-03 in a crawl of all 70 sitemap pages: live paints with
+`brandvm.github.io/pomp/styles.css?v=1` (Embed 2a, i.e. staging) before 2b
+swaps in `@0.0.3`, so a push to `master` that changes CSS reaches live's
+first paint without a release. Piece 1 now writes the pinned sheet into
+`<head>` on the live domain and points 2a at it. Only piece 1 changed;
+2a, 2b and the footer code stay as installed.
+
+- [x] 1. *(approved)* Site settings → Custom code → Head code: replace the
+      whole `<script>` that starts `var RELEASE` with the one in
+      `loader.html` piece 1, then set `var RELEASE = "0.0.3";` (the
+      installed release; the repo keeps `null`). Leave the GA4, Ahrefs,
+      Finsweet and JSON-LD tags around it as they are.
+      Done 2026-11-03 through the MCP (`set_site_freeform_code`); the
+      head code as it was is in `head-code-before-2026-11-03.html`.
+- [x] 2. Publish to **staging** only: pomp-c.webflow.io must behave as
+      before (staging is not a release domain; the new code doesn't run there).
+      Done 2026-11-03: new head code served verbatim; on /, /the-services and
+      /the-work `WFC.releaseCSSFailed` is undefined, `#wfc-css` stays on
+      GitHub Pages, no `[wfc]` console messages.
+- [x] 3. *(approved)* Publish to production. Check on
+      www.pompandcircumstancepr.com, Network tab, a few pages: one
+      `@0.0.3/dist/styles.css` request in the head, `#wfc-css` points at it,
+      and no `brandvm.github.io/pomp/styles.css` request holds first paint
+      (the browser's look-ahead scanner may still fetch it). No `[wfc]`
+      console errors. A visual check of /, /the-services and /the-work shows
+      no change (the release and staging sheets are byte-identical today).
+      Done 2026-11-03: the pinned sheet is in `<head>` and `#wfc-css` points
+      at `@0.0.3/dist/styles.css` on all three pages; the staging sheet is
+      still fetched once (`?v=1`, the look-ahead scanner) but no longer
+      styles the page. No `[wfc]` console messages (only Swiper's loop
+      warning, as before). `node scripts/parity.mjs --target
+      https://pomp-c.webflow.io --pages /,/the-services,/the-work`: 0
+      differences at 375/800/1440 (one 1440 run of /the-services showed 4
+      auto-margin diffs on one container; a rerun was clean).
+- [ ] 4. Rollback: paste `docs/handoff/head-code-before-2026-11-03.html`
+      back into Head code (it has `RELEASE = "0.0.3"`) and publish.
+
 ## Later: move Webflow interactions into the repo
 
 Agreed with the user on 2026-10-09: after cutover, move the Webflow IX/IX2/IX3

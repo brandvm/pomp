@@ -114,9 +114,10 @@ Every difference was deliberate; all carry over into this repo.
 ## Style guide prototype (2026-10-09)
 
 A new style guide page, following the webflow-build skill's
-`style-guide.md` step 1, exists as a localhost prototype next to this repo:
-`../prototype` (outside git; copied by hand from
-`.claude/skills/webflow-build/prototype-starter`). Run `pnpm install` and
+`style-guide.md` step 1 (since template 0.3.0: the `webflow-style-guide`
+skill), exists as a localhost prototype next to this repo:
+`../prototype` (outside git; copied by hand from the prototype starter,
+now `.claude/skills/webflow-prototype/prototype-starter`). Run `pnpm install` and
 `pnpm dev` there, then open `http://127.0.0.1:5173/design/style-guide`
 (`prototypeUrl` in `webflow-build.config.json`). It replaces the old
 `/design/style-guide` (typography, grid, utilities, hosted videos) once
