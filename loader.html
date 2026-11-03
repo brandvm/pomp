@@ -1,6 +1,6 @@
 <!-- ============================================================
 Custom-code loading — three pieces, pasted into three different places
-in Webflow (piece 2 is two Embeds, 2a and 2b). ORG and REPO are filled in (brandvm/pomp). The release
+in Webflow (piece 2 is two Embeds, 2a and 2b). ORG and REPO are filled in (brandvm/wf-pomp). The release
 version lives in ONE place: RELEASE in piece 1.
 
   prod        = pinned jsDelivr tag (immutable)
@@ -48,7 +48,10 @@ published.
 <!-- Migrated from hamounbv/pomp webflow/_header.html (live head code).
      Dropped vs live: the Swiper CDN stylesheet (now bundled in
      dist/styles.css), the pomp.min.css link (now Embed 2a), and the inline
-     <style> (Lenis + dev-support hiding, now src/styles.css §04/§08). -->
+     style block (Lenis + dev-support hiding, now src/styles.css §04/§08).
+     Never write a tag in angle brackets in these comments: Screaming
+     Frog reads it as a real tag and reports a missing body on every
+     page (GOTCHAS 2026-11-03). -->
 
 <!-- Theme Color Browser -->
 <meta name="theme-color" content="#392AE3" />
@@ -90,7 +93,7 @@ published.
   (function () {
     var RELEASE = null; // the release tag, e.g. "1.0.0" — the only version string
     var OWNER = "brandvm"; // the GitHub org or user that owns this repo
-    var SITE = "pomp"; // this repo's name
+    var SITE = "wf-pomp"; // this repo's name
     var STAG = "https://" + OWNER + ".github.io/" + SITE + "/";
     var DEV = "http://localhost:3000/";
     var staging = /\.webflow\.io$/.test(location.hostname);
@@ -408,7 +411,7 @@ published.
 <link
   id="wfc-css"
   rel="stylesheet"
-  href="https://brandvm.github.io/pomp/styles.css?v=1"
+  href="https://brandvm.github.io/wf-pomp/styles.css?v=1"
 />
 
 <!-- ============================================================

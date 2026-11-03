@@ -3,7 +3,7 @@
   "stagingUrl": "https://pomp-c.webflow.io",
   "liveUrl": "https://www.pompandcircumstancepr.com",
   "repoDir": ".",
-  "bundlePattern": "brandvm\\.github\\.io/pomp/(index\\.js|styles\\.css)",
+  "bundlePattern": "brandvm\\.github\\.io/wf-pomp/(index\\.js|styles\\.css)",
   "widths": [
     [1440, 900],
     [820, 1180],

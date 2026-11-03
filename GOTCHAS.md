@@ -25,6 +25,21 @@ collected from client repos into those files.
 
 ## This project
 
+### 2026-11-03 · A tag name inside an HTML comment: Screaming Frog reports "Missing body" on every page
+- Area: loader
+- Scope: template-candidate
+- Symptom: Screaming Frog (25.0) lists "Validation: Missing `<body>` Tag"
+  (Issue, High) on all 75 HTML pages, though every page has a body.
+- Cause: a comment in head code piece 1 contained the literal text
+  `<style>`. Browsers ignore comments; SF's validator treats the text as
+  a tag. Bisected with the SF CLI on local copies of a live page: changing
+  only that word clears it, and no other part of the page triggers it.
+  Tag text inside `<script>` (JS comments, strings) does not trigger it.
+- Fix: comment reworded in `loader.html` and the installed head code, with
+  a note not to write tags in angle brackets in those comments.
+- Status: fixed — published to production 2026-11-03
+- Found by: claude
+
 ### 2026-11-03 · Live paints with the staging stylesheet first
 - Area: loader
 - Scope: project
