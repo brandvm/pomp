@@ -37,7 +37,7 @@ collected from client repos into those files.
   Tag text inside `<script>` (JS comments, strings) does not trigger it.
 - Fix: comment reworded in `loader.html` and the installed head code, with
   a note not to write tags in angle brackets in those comments.
-- Status: open — on staging 2026-11-03; production publish pending
+- Status: fixed — published to production 2026-11-03
 - Found by: claude
 
 ### 2026-11-03 · Live paints with the staging stylesheet first
