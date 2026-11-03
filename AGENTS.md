@@ -9,11 +9,11 @@ source of agent rules — edit this file, never a copy of it.
 Filled in by `pnpm new-project` on 2026-10-09; moved to template 0.12.0 on 2026-11-03.
 
 - Client / site: `Pomp & Circumstance PR`
-- GitHub: `brandvm/pomp`, default branch `master`
+- GitHub: `brandvm/wf-pomp` (renamed from `brandvm/pomp` on 2026-11-03), default branch `master`
 - Webflow site ID: `62a5f6c6cc39b911d78bd5b5`
 - Webflow MCP server: `webflow-pomp-c` (`.mcp.json`)
 - Staging site: `https://pomp-c.webflow.io`
-- Staging bundles: `https://brandvm.github.io/pomp/`
+- Staging bundles: `https://brandvm.github.io/wf-pomp/`
 - Production domain: `www.pompandcircumstancepr.com`
 - Production release: `0.0.3`, installed (`RELEASE` in the Webflow head code;
   `loader.html` keeps `null` by design, see GOTCHAS).
