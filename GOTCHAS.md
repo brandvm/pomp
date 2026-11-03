@@ -25,6 +25,25 @@ collected from client repos into those files.
 
 ## This project
 
+### 2026-11-03 · Live paints with the staging stylesheet first
+- Area: loader
+- Scope: project
+- Symptom: every live page (70/70 in a sitemap crawl) requests both
+  `brandvm.github.io/pomp/styles.css?v=1` and `@0.0.3/dist/styles.css`;
+  Lighthouse lists the staging one as render-blocking.
+- Cause: the pre-0.8.0 loader. Embed 2a links the staging sheet (for the
+  canvas) and 2b swaps in the release only after it loads, so first paint
+  uses staging CSS. A push to `master` that changes CSS reaches live's
+  first paint without a release; if the release sheet failed, staging
+  would stay. Harmless today: both files are byte-identical.
+- Fix: wf-template 0.8.0 piece 1 ported to `loader.html` (writes the pinned
+  sheet into `<head>` on the live domain, re-points 2a at it).
+  `environment-switcher.spec.mjs` covers it. Install steps:
+  docs/handoff/MANUAL-TODO.md › Release stylesheet in the head.
+- Status: fixed — head code installed and published to production
+  2026-11-03 (MCP; rollback copy docs/handoff/head-code-before-2026-11-03.html).
+- Found by: claude
+
 <!-- Add new entries here, newest first. -->
 
 ### 2026-10-09 · Swapping the stylesheet href in 2b causes a full-page layout shift

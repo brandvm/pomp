@@ -105,10 +105,45 @@ published.
       : STAG;
     if (!staging && !RELEASE)
       console.error("[wfc] RELEASE is not set in head code; serving the staging bundle. Tag a release and set RELEASE before launch.");
+    // The canvas Embed (2a) must link the staging stylesheet, for the
+    // Designer. On a release domain, write the pinned sheet into <head>
+    // instead: a parser-inserted head stylesheet holds first paint in every
+    // browser, so the page never paints at the wrong scale (§01). Then
+    // re-point 2a at the same file as the parser inserts it (one request;
+    // the observer runs before 2b), so GitHub Pages never holds the page and
+    // 2b's swap is a no-op. If the observer misses, 2b swaps as before.
+    // document.write is deliberate (Lighthouse flags it): only a
+    // parser-inserted sheet holds first paint, and it writes a stylesheet,
+    // never a script, so Chrome's document.write intervention doesn't apply.
+    // If the release sheet fails (jsDelivr down or blocked), 2a goes back to
+    // its staging sheet so the page stays styled, as it did before.
+    // From wf-template 0.8.0 (loader piece 1).
+    var releaseCSSFailed;
+    if (!staging && RELEASE) {
+      var want = prod + "styles.css";
+      var embed, embedHref, failed = false;
+      releaseCSSFailed = function () {
+        failed = true;
+        if (embed && embed.href === want) embed.href = embedHref;
+      };
+      document.write('<link rel="stylesheet" href="' + want + '" onerror="WFC.releaseCSSFailed()">');
+      if (window.MutationObserver) {
+        var watch = new MutationObserver(function () {
+          var link = document.getElementById("wfc-css");
+          if (!link) return;
+          watch.disconnect();
+          embed = link;
+          embedHref = link.href;
+          if (!failed && link.href !== want) link.href = want;
+        });
+        watch.observe(document.documentElement, { childList: true, subtree: true });
+        document.addEventListener("DOMContentLoaded", function () { watch.disconnect(); });
+      }
+    }
     // Shared config — the Embed, the footer loader and the bundle read this.
     window.WFC = {
       staging: staging, dev: flag, devBase: DEV, stag: STAG,
-      release: RELEASE, prod: prod,
+      release: RELEASE, prod: prod, releaseCSSFailed: releaseCSSFailed,
     };
 
     // Paired with the html.is-loading rules in src/styles.css. The bundle
@@ -344,9 +379,11 @@ published.
    code the canvas would show blank boxes where every icon should be.
 
    The canvas shows the STAGING stylesheet: push, wait ~1 min, reload
-   the Designer tab. Everywhere else the 2b script rewrites the href
-   (pinned tag on prod, cache-busted staging on webflow.io) and adds
-   the localhost sheet only when the dev flag is on.
+   the Designer tab. On a release domain the head code (piece 1) writes
+   the pinned sheet into <head> and points this link at it before it
+   loads, so production never waits for the staging sheet (2b's swap is
+   then a fallback); on webflow.io 2b swaps in a cache-busted staging
+   copy. It adds the localhost sheet only when the dev flag is on.
 
    There is deliberately no static localhost <link> here. It used to
    let the canvas show unsaved local CSS, but every public visitor's

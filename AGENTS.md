@@ -100,7 +100,8 @@ Before writing any CSS, decide where it belongs.
   `placeholders` and its Phosphor icon font are not in the bundle
   (`pnpm phosphor none`): `dist/` stays byte-identical to what live loads.
 - **Project deviation:** `loader.html` is the loader installed on live, not
-  the template's newer one, so `pnpm test` keeps this repo's own
+  the template's newer one (piece 1 has the 0.8.0 release-stylesheet fix,
+  installed 2026-11-03), so `pnpm test` keeps this repo's own
   `css-swap` and `environment-switcher` specs and leaves out the template's
   `loader`, `update-skills` and `bench` node checks (they test the
   template's loader, icon font and template-only scripts). The
