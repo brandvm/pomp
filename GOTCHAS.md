@@ -25,6 +25,20 @@ collected from client repos into those files.
 
 ## This project
 
+### 2026-11-03 · Element builder ignores set_text on a TextBlock; the text lives on a String child
+- Area: mcp
+- Scope: template-candidate
+- Symptom: `data_element_builder` created TextBlocks with `set_text`
+  ("Pomp & Circumstance home") and reported success, but they published
+  with Webflow's default "This is some text inside of a div block.".
+  `set_text` on the block afterwards: "This element doesn't support text".
+- Cause: the builder makes a Block whose text is a child `String` node;
+  `set_text` at creation is dropped.
+- Fix: query the block with `children_depth: 1` and `set_text` on the
+  `String` child's id. Check the published HTML for the text.
+- Status: worked around
+- Found by: claude
+
 ### 2026-11-03 · A tag name inside an HTML comment: Screaming Frog reports "Missing body" on every page
 - Area: loader
 - Scope: template-candidate
