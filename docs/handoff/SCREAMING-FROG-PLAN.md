@@ -82,6 +82,30 @@ checks nothing else is pending, the person types **publish**, re-crawl live.
 After each batch: re-crawl staging (pomp-c.webflow.io) with the same SF
 config and compare counts; after "publish", re-crawl live.
 
+## Progress
+
+| Date | Batch | Live crawl (SF 25.0, same settings) |
+| --- | --- | --- |
+| 2026-11-03 | baseline | 39 findings: 2 Issues, 19 Warnings, 18 Opportunities |
+| 2026-11-03 | 1 (head comment) and 2 (site-wide Designer) live | 24 findings |
+
+Batch 2 as built: blog list pagination off (49 posts on /blog, no
+`?_page=` URLs); hidden U Sr Only text in the nav and footer logo links
+(home and Bonus Track); `rel="noopener"` as a custom attribute on the
+nav/footer Bonus Track, footer Maps and Brand Vision links, the /contact
+Maps link and the C | Button component (the /shop buttons); the footer
+llms.txt link removed (footer 46 px shorter); `og:url` in the head code
+of Home, /the-work, /the-services, /the-roster, /the-story, /contact,
+/blog, /shop, /sitemap and the post and work templates.
+
+Results: cleared #3, #4, #10, #11, #12–15, #19, #24, #30, #33, #36;
+#1 (batch 1); #18 (cision.com answers again). #9 down to 7 (rich-text
+links in posts), #28 down to 2 (/the-work cards, one empty link in a
+post), #20 down to 55, #23 down to 7. #11 cleared without `twitter:site`:
+no X handle is needed. #17 is now 17 (one more source answers 403).
+Not changed: #22 (the Bonus Track links are nav + footer logos, not a
+duplicate; removing one is a design decision).
+
 ## Decisions needed
 
 - **Security headers (#5–8).** Not fixable on Webflow's standard hosting.
