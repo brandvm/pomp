@@ -48,7 +48,10 @@ published.
 <!-- Migrated from hamounbv/pomp webflow/_header.html (live head code).
      Dropped vs live: the Swiper CDN stylesheet (now bundled in
      dist/styles.css), the pomp.min.css link (now Embed 2a), and the inline
-     <style> (Lenis + dev-support hiding, now src/styles.css §04/§08). -->
+     style block (Lenis + dev-support hiding, now src/styles.css §04/§08).
+     Never write a tag in angle brackets in these comments: Screaming
+     Frog reads it as a real tag and reports a missing body on every
+     page (GOTCHAS 2026-11-03). -->
 
 <!-- Theme Color Browser -->
 <meta name="theme-color" content="#392AE3" />
