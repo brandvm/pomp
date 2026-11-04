@@ -88,6 +88,7 @@ config and compare counts; after "publish", re-crawl live.
 | --- | --- | --- |
 | 2026-11-03 | baseline | 39 findings: 2 Issues, 19 Warnings, 18 Opportunities |
 | 2026-11-03 | 1 (head comment) and 2 (site-wide Designer) live | 24 findings |
+| 2026-11-04 | 3 (static-page images and headings) live | 26 findings |
 
 Batch 2 as built: blog list pagination off (49 posts on /blog, no
 `?_page=` URLs); hidden U Sr Only text in the nav and footer logo links
@@ -105,6 +106,27 @@ post), #20 down to 55, #23 down to 7. #11 cleared without `twitter:site`:
 no X handle is needed. #17 is now 17 (one more source answers 403).
 Not changed: #22 (the Bonus Track links are nav + footer logos, not a
 duplicate; removing one is a design decision).
+
+Batch 3 as built: alt text in the asset library on the 35 site images the
+static pages use (service, shop, team, award, contact icons; five assets
+sit under legacy IDs, found through the elements that use them); alt
+"<Client> logo" on all 73 Clients items (bulk CMS updates fail at random
+with "Missing fields"; groups of up to 9 or single items go through); the
+/blog card image alt bound to the post title; H2s with no visual change
+(computed styles compared in the browser first): /blog card titles H5 to
+H2, /the-roster section headers h3 to h2 (C | Section Header Title Tag
+prop), /contact and /sitemap labels rebuilt as H2 with the same class;
+hidden U Sr Only text in the /the-work card links bound to Project Name.
+Parity live vs staging: only the tag changes.
+
+Results: #2 down to 102 (all inside posts and work items, batch 4);
+#20 down to 51; #28 down to 1 (an empty link in a post); #23 down to 6.
+New: H2 Over 70 Characters on /blog (the 89-character "The Art of
+Gifting" post title, fixed with #31) and one external link timing out
+(batch 4). #21 up to 17 (/blog has 49 H2s now, /the-roster 2).
+Not done: #27 width/height. The API only sets fixed attributes, and most
+of these images are one element repeated with different aspect ratios.
+Decision needed (Designer per fixed-ratio image, or accept).
 
 ## Decisions needed
 
