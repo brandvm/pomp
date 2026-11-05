@@ -89,6 +89,7 @@ config and compare counts; after "publish", re-crawl live.
 | 2026-11-03 | baseline | 39 findings: 2 Issues, 19 Warnings, 18 Opportunities |
 | 2026-11-03 | 1 (head comment) and 2 (site-wide Designer) live | 24 findings |
 | 2026-11-04 | 3 (static-page images and headings) live | 26 findings |
+| 2026-11-05 | 4b and the work template (4a part) live | 21 findings |
 
 Batch 2 as built: blog list pagination off (49 posts on /blog, no
 `?_page=` URLs); hidden U Sr Only text in the nav and footer logo links
@@ -127,6 +128,29 @@ Gifting" post title, fixed with #31) and one external link timing out
 Not done: #27 width/height. The API only sets fixed attributes, and most
 of these images are one element repeated with different aspect ratios.
 Decision needed (Designer per fixed-ratio image, or accept).
+
+Batch 4 so far. Work template: "The Ask / The Approach / The Results" H3
+to H2 (same computed style), and the C | Parallax Image Alt Text prop on
+Image 1-4 bound to Project Name (the cover already was). 4b (approved
+drafts): SEO titles on the 8 posts whose title equalled the H1; Home,
+/the-services and the Scuderia meta descriptions trimmed; the Art of
+Gifting post name shortened to "The Art of Gifting: Luxury Brands and
+High-End Corporate Gifts" (H1, /blog card, /sitemap). Four of the new
+titles were 562-608 px wide (SF limit 561 px, not just 60 characters);
+shortened versions measure 466-550 px and are live.
+
+Results: #2 down to 60 (the post-body images); #29, #31, #34, #35 and
+H2 Over 70 cleared; #20 down to 39. New and accepted: H2 Duplicate (14)
+from the work template's shared section headings (decision 2026-11-05:
+keep them).
+
+Waiting: the 71 post-body edits (60 image alts reviewed, 8 rel=noopener,
+2 redirecting links, 1 empty link) need a Webflow API token in
+~/.config/pomp/webflow-token; sending ~290k characters of post HTML back
+by hand through the MCP was judged too risky. The Art of Gifting slug
+change waits for its 301 (MANUAL-TODO row T). Decisions still open: the
+16 external 403 links and H2s in post bodies (an H2 renders larger than
+an H3 there, 20.8 px vs 17.9 px).
 
 ## Decisions needed
 

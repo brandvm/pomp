@@ -25,6 +25,32 @@ collected from client repos into those files.
 
 ## This project
 
+### 2026-11-05 · Bulk CMS updates through the MCP fail at random with "Missing fields"
+- Area: mcp
+- Scope: template-candidate
+- Symptom: `update_collection_items` with 12-72 items (image `alt` on
+  Clients logos) failed with 400 "Request is malformed: Missing fields";
+  every failing item then went through on its own, and some groups of 8-9
+  passed while others failed. An image field written with `fileId` and
+  `url` was sometimes re-imported under a new file id.
+- Cause: unknown, Webflow-side.
+- Fix: write in groups of up to 8, retry a failing group one item per
+  request, and check the returned `fieldData`.
+- Status: worked around
+- Found by: claude
+
+### 2026-11-05 · Screaming Frog limits page titles by pixel width, not only length
+- Area: designer
+- Scope: template-candidate
+- Symptom: new SEO titles of 59-60 characters passed the 60-character
+  check but four were flagged "Page Titles: Over 561 Pixels" (562-608 px).
+- Cause: SF measures rendered width; wide letters and "&" add up.
+- Fix: keep titles to about 50-55 characters with the "| Pomp &
+  Circumstance" suffix, and measure before publishing (SF list crawl,
+  `--export-tabs "Page Titles:All"`, column Title 1 Pixel Width).
+- Status: fixed (titles shortened, live 2026-11-05)
+- Found by: claude
+
 ### 2026-11-03 · Element builder ignores set_text on a TextBlock; the text lives on a String child
 - Area: mcp
 - Scope: template-candidate

@@ -43,6 +43,7 @@ mentioned in GOTCHAS or a commit stays unambiguous.
 | Q | **Form Button** › Pressed | Desktop | Opacity 100%; background **State/Pressed**; text colour Transparent (P15) | MCP not connected | ☐ |
 | R | **G Nav Menu Drawer** › Pressed | Desktop | Box shadow inset 0 0 0 100em **State/Pressed** (P16) | MCP not connected | ☐ |
 | S | **Cherry Picked Modal Closer** › Pressed | Desktop | Box shadow inset 0 0 0 100em **State/Pressed** (P17) | MCP not connected | ☐ |
+| T | Site settings › Publishing › 301 redirects | — | Add `/post/the-art-of-gifting-how-luxury-brands-capitalize-on-high-end-corporate-and-personal-gifts` → `/post/the-art-of-gifting-luxury-brands`, then tell Claude: it changes the post slug and both go live in one publish (Screaming Frog URL Over 115 Characters) | No redirect tool in the MCP | ☐ |
 
 Rows A–S come from the approved focus-state, pressed-state and form-label proposal (pressed: P11–P17, checked with `node scripts/check-pressed.mjs`) (prototype `src/css/proposed.css` P1–P10, `new-classes.css` U Sr Only). Check them with `node scripts/check-focus.mjs` in the prototype. On live, Tab through Home, Contact and a blog post: every control shows the two-tone ring, and a mouse click shows nothing on buttons or links.
 
