@@ -25,6 +25,21 @@ collected from client repos into those files.
 
 ## This project
 
+### 2026-11-05 · A Brand Vision hook blocks publish_site: the person publishes
+- Area: release
+- Scope: template-candidate
+- Symptom: a production publish through `data_sites_tool` › `publish_site`
+  was refused by a PreToolUse hook ("Claude doesn't publish Webflow
+  sites"), after earlier staging and production publishes in the same
+  session had gone through.
+- Cause: a machine-level hook added mid-session; the webflow-audit flow
+  ("publish when the person types publish") assumes Claude publishes.
+- Fix: stop at "staged and checked"; tell the person what is ready and
+  where to check it on staging; they publish in the Designer and say so;
+  then verify live. Don't route around it (API, script, other server).
+- Status: open — the skill's publish steps need updating upstream
+- Found by: claude
+
 ### 2026-11-06 · C | Parallax Image and the work template render images without srcset
 - Area: perf
 - Scope: project

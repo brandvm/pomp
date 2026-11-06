@@ -91,6 +91,7 @@ config and compare counts; after "publish", re-crawl live.
 | 2026-11-04 | 3 (static-page images and headings) live | 26 findings |
 | 2026-11-05 | 4b and the work template (4a part) live | 21 findings |
 | 2026-11-06 | 6 (image compression: 9 site assets, 53 work-item image fields) live | 20 findings |
+| 2026-11-05 | 4a (post bodies: alts, rel, redirecting and empty links) live | 17 findings (one fixed in the CMS, waits for a publish) |
 
 Batch 2 as built: blog list pagination off (49 posts on /blog, no
 `?_page=` URLs); hidden U Sr Only text in the nav and footer logo links
@@ -165,6 +166,19 @@ the work pages). Originals in the workspace `audit/image-originals/` and
 layout change. #25 down to 69: many photos stay at 110-260 kB at q75;
 the 4 blog thumbnails (about 1080 px) and 8 small site images gained
 nothing and were left; the 17 post-body images wait for the API token.
+
+Batch 4a, post bodies: 71 edits in 27 posts through the Data API with a
+token file (scratchpad script `cms-richtext-edit.mjs`: each edit must
+match exactly once, every item read back after the PATCH). 60 image alts,
+`rel="noopener"` on 8 rich-text links, `/the-pitch` → `/the-story` and the
+apex home link → www, the empty home link removed. All 71 checked in the
+published HTML on staging and live. Published to production by the user
+in the Designer: Claude no longer publishes (GOTCHAS 2026-11-05).
+
+Results: #2, #9, #16 and #28 cleared. New: Images Alt Text Over 100
+Characters (1), one of the new alts at 103 characters; shortened to 95 in
+the CMS, live after the next publish. #38/#39 now 9 and 2 (Flesch moves
+with the content).
 
 ## Decisions needed
 
