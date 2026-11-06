@@ -25,6 +25,22 @@ collected from client repos into those files.
 
 ## This project
 
+### 2026-11-06 · C | Parallax Image and the work template render images without srcset
+- Area: perf
+- Scope: project
+- Symptom: service cards, /the-story portraits and every work-item image
+  render as `<img src=…>` with no srcset, so phones download the
+  original upload (5760 px, about 1 MB for one service image).
+- Cause: the images reach the element through component props or CMS
+  bindings; Webflow's responsive variants (-p-500 … -p-3200) exist for
+  the assets but are not used there.
+- Fix: upload images already sized for the web (2000 px max, WebP q75,
+  audit/ in the workspace has the originals). Assets uploaded through
+  the API get no responsive variants at all, so this only pays off where
+  srcset was not used anyway; check the published `<img>` first.
+- Status: worked around (batch 6, 2026-11-06)
+- Found by: claude
+
 ### 2026-11-05 · Bulk CMS updates through the MCP fail at random with "Missing fields"
 - Area: mcp
 - Scope: template-candidate

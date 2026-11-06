@@ -90,6 +90,7 @@ config and compare counts; after "publish", re-crawl live.
 | 2026-11-03 | 1 (head comment) and 2 (site-wide Designer) live | 24 findings |
 | 2026-11-04 | 3 (static-page images and headings) live | 26 findings |
 | 2026-11-05 | 4b and the work template (4a part) live | 21 findings |
+| 2026-11-06 | 6 (image compression: 9 site assets, 53 work-item image fields) live | 20 findings |
 
 Batch 2 as built: blog list pagination off (49 posts on /blog, no
 `?_page=` URLs); hidden U Sr Only text in the nav and footer logo links
@@ -151,6 +152,19 @@ by hand through the MCP was judged too risky. The Art of Gifting slug
 change waits for its 301 (MANUAL-TODO row T). Decisions still open: the
 16 external 403 links and H2s in post bodies (an H2 renders larger than
 an H3 there, 20.8 px vs 17.9 px).
+
+Batch 6 (decision 2026-11-05: 2000 px max, WebP q75, swap only where it
+saves over 30%). The parallax/service-card and work-template images had
+no srcset, so every visitor loaded the full originals (up to 5760 px,
+1 MB). Site assets: 9 replaced (Home and /the-services about 4.4 MB
+lighter each; the Creative LCP preload, the Open Graph image on 16 pages
+and Home's JSON-LD image follow). Work items: 53 image fields across 11
+items now point at 41 recompressed files (about 18 MB to 7.6 MB across
+the work pages). Originals in the workspace `audit/image-originals/` and
+`audit/cms-originals/`; old assets kept in the library. Parity: no
+layout change. #25 down to 69: many photos stay at 110-260 kB at q75;
+the 4 blog thumbnails (about 1080 px) and 8 small site images gained
+nothing and were left; the 17 post-body images wait for the API token.
 
 ## Decisions needed
 
