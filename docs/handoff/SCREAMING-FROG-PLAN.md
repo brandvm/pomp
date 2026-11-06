@@ -88,6 +88,10 @@ config and compare counts; after "publish", re-crawl live.
 | --- | --- | --- |
 | 2026-11-03 | baseline | 39 findings: 2 Issues, 19 Warnings, 18 Opportunities |
 | 2026-11-03 | 1 (head comment) and 2 (site-wide Designer) live | 24 findings |
+| 2026-11-04 | 3 (static-page images and headings) live | 26 findings |
+| 2026-11-05 | 4b and the work template (4a part) live | 21 findings |
+| 2026-11-06 | 6 (image compression: 9 site assets, 53 work-item image fields) live | 20 findings |
+| 2026-11-05 | 4a (post bodies: alts, rel, redirecting and empty links) live | 17 findings (one fixed in the CMS, waits for a publish) |
 
 Batch 2 as built: blog list pagination off (49 posts on /blog, no
 `?_page=` URLs); hidden U Sr Only text in the nav and footer logo links
@@ -105,6 +109,84 @@ post), #20 down to 55, #23 down to 7. #11 cleared without `twitter:site`:
 no X handle is needed. #17 is now 17 (one more source answers 403).
 Not changed: #22 (the Bonus Track links are nav + footer logos, not a
 duplicate; removing one is a design decision).
+
+Batch 3 as built: alt text in the asset library on the 35 site images the
+static pages use (service, shop, team, award, contact icons; five assets
+sit under legacy IDs, found through the elements that use them); alt
+"<Client> logo" on all 73 Clients items (bulk CMS updates fail at random
+with "Missing fields"; groups of up to 9 or single items go through); the
+/blog card image alt bound to the post title; H2s with no visual change
+(computed styles compared in the browser first): /blog card titles H5 to
+H2, /the-roster section headers h3 to h2 (C | Section Header Title Tag
+prop), /contact and /sitemap labels rebuilt as H2 with the same class;
+hidden U Sr Only text in the /the-work card links bound to Project Name.
+Parity live vs staging: only the tag changes.
+
+Results: #2 down to 102 (all inside posts and work items, batch 4);
+#20 down to 51; #28 down to 1 (an empty link in a post); #23 down to 6.
+New: H2 Over 70 Characters on /blog (the 89-character "The Art of
+Gifting" post title, fixed with #31) and one external link timing out
+(batch 4). #21 up to 17 (/blog has 49 H2s now, /the-roster 2).
+Not done: #27 width/height. The API only sets fixed attributes, and most
+of these images are one element repeated with different aspect ratios.
+Decision needed (Designer per fixed-ratio image, or accept).
+
+Batch 4 so far. Work template: "The Ask / The Approach / The Results" H3
+to H2 (same computed style), and the C | Parallax Image Alt Text prop on
+Image 1-4 bound to Project Name (the cover already was). 4b (approved
+drafts): SEO titles on the 8 posts whose title equalled the H1; Home,
+/the-services and the Scuderia meta descriptions trimmed; the Art of
+Gifting post name shortened to "The Art of Gifting: Luxury Brands and
+High-End Corporate Gifts" (H1, /blog card, /sitemap). Four of the new
+titles were 562-608 px wide (SF limit 561 px, not just 60 characters);
+shortened versions measure 466-550 px and are live.
+
+Results: #2 down to 60 (the post-body images); #29, #31, #34, #35 and
+H2 Over 70 cleared; #20 down to 39. New and accepted: H2 Duplicate (14)
+from the work template's shared section headings (decision 2026-11-05:
+keep them).
+
+Waiting: the 71 post-body edits (60 image alts reviewed, 8 rel=noopener,
+2 redirecting links, 1 empty link) need a Webflow API token in
+~/.config/pomp/webflow-token; sending ~290k characters of post HTML back
+by hand through the MCP was judged too risky. The Art of Gifting slug
+change waits for its 301 (MANUAL-TODO row T). Decisions still open: the
+16 external 403 links and H2s in post bodies (an H2 renders larger than
+an H3 there, 20.8 px vs 17.9 px).
+
+Batch 6 (decision 2026-11-05: 2000 px max, WebP q75, swap only where it
+saves over 30%). The parallax/service-card and work-template images had
+no srcset, so every visitor loaded the full originals (up to 5760 px,
+1 MB). Site assets: 9 replaced (Home and /the-services about 4.4 MB
+lighter each; the Creative LCP preload, the Open Graph image on 16 pages
+and Home's JSON-LD image follow). Work items: 53 image fields across 11
+items now point at 41 recompressed files (about 18 MB to 7.6 MB across
+the work pages). Originals in the workspace `audit/image-originals/` and
+`audit/cms-originals/`; old assets kept in the library. Parity: no
+layout change. #25 down to 69: many photos stay at 110-260 kB at q75;
+the 4 blog thumbnails (about 1080 px) and 8 small site images gained
+nothing and were left; the 17 post-body images wait for the API token.
+
+Batch 4a, post bodies: 71 edits in 27 posts through the Data API with a
+token file (scratchpad script `cms-richtext-edit.mjs`: each edit must
+match exactly once, every item read back after the PATCH). 60 image alts,
+`rel="noopener"` on 8 rich-text links, `/the-pitch` → `/the-story` and the
+apex home link → www, the empty home link removed. All 71 checked in the
+published HTML on staging and live. Published to production by the user
+in the Designer: Claude no longer publishes (GOTCHAS 2026-11-05).
+
+Results: #2, #9, #16 and #28 cleared. New: Images Alt Text Over 100
+Characters (1), one of the new alts at 103 characters; shortened to 95 in
+the CMS, live after the next publish. #38/#39 now 9 and 2 (Flesch moves
+with the content).
+
+Post-body images (decision 2026-11-05: leave them). The 17 over 100 kB
+are already WebP at 1600 px or less; q75 saves only 16-30% (2.4 MB to
+1.85 MB across 17 posts) and re-encodes lossy files, so none meet the
+30% rule. Seven would fall under 100 kB (#25 to 62). Originals and
+the unused re-encodes are in the workspace `audit/post-originals/`,
+`audit/post-webp/`, `audit/post-images-compress.json`. #25 stays at
+69: accepted.
 
 ## Decisions needed
 

@@ -25,6 +25,63 @@ collected from client repos into those files.
 
 ## This project
 
+### 2026-11-05 · A Brand Vision hook blocks publish_site: the person publishes
+- Area: release
+- Scope: template-candidate
+- Symptom: a production publish through `data_sites_tool` › `publish_site`
+  was refused by a PreToolUse hook ("Claude doesn't publish Webflow
+  sites"), after earlier staging and production publishes in the same
+  session had gone through.
+- Cause: a machine-level hook added mid-session; the webflow-audit flow
+  ("publish when the person types publish") assumes Claude publishes.
+- Fix: stop at "staged and checked"; tell the person what is ready and
+  where to check it on staging; they publish in the Designer and say so;
+  then verify live. Don't route around it (API, script, other server).
+- Status: open — the skill's publish steps need updating upstream
+- Found by: claude
+
+### 2026-11-06 · C | Parallax Image and the work template render images without srcset
+- Area: perf
+- Scope: project
+- Symptom: service cards, /the-story portraits and every work-item image
+  render as `<img src=…>` with no srcset, so phones download the
+  original upload (5760 px, about 1 MB for one service image).
+- Cause: the images reach the element through component props or CMS
+  bindings; Webflow's responsive variants (-p-500 … -p-3200) exist for
+  the assets but are not used there.
+- Fix: upload images already sized for the web (2000 px max, WebP q75,
+  audit/ in the workspace has the originals). Assets uploaded through
+  the API get no responsive variants at all, so this only pays off where
+  srcset was not used anyway; check the published `<img>` first.
+- Status: worked around (batch 6, 2026-11-06)
+- Found by: claude
+
+### 2026-11-05 · Bulk CMS updates through the MCP fail at random with "Missing fields"
+- Area: mcp
+- Scope: template-candidate
+- Symptom: `update_collection_items` with 12-72 items (image `alt` on
+  Clients logos) failed with 400 "Request is malformed: Missing fields";
+  every failing item then went through on its own, and some groups of 8-9
+  passed while others failed. An image field written with `fileId` and
+  `url` was sometimes re-imported under a new file id.
+- Cause: unknown, Webflow-side.
+- Fix: write in groups of up to 8, retry a failing group one item per
+  request, and check the returned `fieldData`.
+- Status: worked around
+- Found by: claude
+
+### 2026-11-05 · Screaming Frog limits page titles by pixel width, not only length
+- Area: designer
+- Scope: template-candidate
+- Symptom: new SEO titles of 59-60 characters passed the 60-character
+  check but four were flagged "Page Titles: Over 561 Pixels" (562-608 px).
+- Cause: SF measures rendered width; wide letters and "&" add up.
+- Fix: keep titles to about 50-55 characters with the "| Pomp &
+  Circumstance" suffix, and measure before publishing (SF list crawl,
+  `--export-tabs "Page Titles:All"`, column Title 1 Pixel Width).
+- Status: fixed (titles shortened, live 2026-11-05)
+- Found by: claude
+
 ### 2026-11-03 · Element builder ignores set_text on a TextBlock; the text lives on a String child
 - Area: mcp
 - Scope: template-candidate
