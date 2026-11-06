@@ -180,6 +180,14 @@ Characters (1), one of the new alts at 103 characters; shortened to 95 in
 the CMS, live after the next publish. #38/#39 now 9 and 2 (Flesch moves
 with the content).
 
+Post-body images (decision 2026-11-05: leave them). The 17 over 100 kB
+are already WebP at 1600 px or less; q75 saves only 16-30% (2.4 MB to
+1.85 MB across 17 posts) and re-encodes lossy files, so none meet the
+30% rule. Seven would fall under 100 kB (#25 to 62). Originals and
+the unused re-encodes are in the workspace `audit/post-originals/`,
+`audit/post-webp/`, `audit/post-images-compress.json`. #25 stays at
+69: accepted.
+
 ## Decisions needed
 
 - **Security headers (#5–8).** Not fixable on Webflow's standard hosting.
